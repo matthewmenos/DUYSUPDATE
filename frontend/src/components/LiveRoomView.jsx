@@ -48,7 +48,7 @@ function LiveRoomView({ room, onClose, onEnded }) {
   useEffect(() => {
     if (!roomId) return;
     const token = localStorage.getItem('accessToken');
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin), {
       auth: { token }
     });
     socketRef.current = socket;

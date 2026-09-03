@@ -1,7 +1,9 @@
 import axios from 'axios';
 import useAuthStore from '../stores/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Same-origin by default: Vercel serves the API under /api on the same host
+// (see vercel.json rewrites), and the Vite dev proxy maps /api -> :5000.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,

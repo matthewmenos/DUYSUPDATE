@@ -25,6 +25,7 @@ dist/
 .next/
 out/
 build/
+.vercel/
 
 # Testing
 coverage/
@@ -62,7 +63,6 @@ uploads/
 *.webm
 
 # Node/npm
-package-lock.json
 yarn.lock
 
 # Python (legacy)

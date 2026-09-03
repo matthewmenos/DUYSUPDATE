@@ -66,29 +66,28 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Graceful shutdown
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`[${new Date().toISOString()}] DUYS backend running on port ${PORT}`);
-});
-
-// Attach Socket.io for real-time live features (viewers, chat).
-initSocket(server);
-
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(async () => {
-    await pool.end();
-    process.exit(0);
+// Long-running HTTP server — skipped on Vercel, where `api/index.js` mounts
+// this app under `/api` and Vercel manages the request lifecycle instead.
+// Socket.io also only works with a long-running server, not serverless.
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`[${new Date().toISOString()}] DUYS backend running on port ${PORT}`);
   });
-});
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  server.close(async () => {
-    await pool.end();
-    process.exit(0);
-  });
-});
+  // Attach Socket.io for real-time live features (viewers, chat).
+  initSocket(server);
+
+  const shutdown = async (signal) => {
+    console.log(`${signal} received, shutting down gracefully...`);
+    server.close(async () => {
+      await pool.end();
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
 
 export default app;
