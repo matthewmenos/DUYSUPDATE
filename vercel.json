@@ -3,7 +3,7 @@
   "framework": null,
   "installCommand": "cd /vercel/path0 && npm install --no-audit --no-fund",
   "buildCommand": "cd /vercel/path0 && npm --workspace frontend run build",
-  "outputDirectory": "frontend/dist",
+  "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
       "maxDuration": 30
