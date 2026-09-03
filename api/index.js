@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vercel serverless entry point.
  *
  * Vercel routes every `/api/*` request to this function (see the rewrites in
