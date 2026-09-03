@@ -74,7 +74,7 @@ function ChannelsPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-sm font-semibold hover:opacity-90"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 text-sm font-semibold hover:opacity-90"
         >
           <FiPlus /> Create
         </button>
@@ -108,7 +108,7 @@ function ChannelsPage() {
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <FiUsers /> {channel.subscriber_count} subscribers
                 </span>
-                <span className="text-xs text-pink-400">{channel.owner_display_name}</span>
+                <span className="text-xs text-blue-400">{channel.owner_display_name}</span>
               </div>
             </Link>
           ))}
@@ -129,26 +129,26 @@ function ChannelsPage() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Channel name"
-                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 value={form.handle}
                 onChange={(e) => setForm({ ...form, handle: e.target.value })}
                 placeholder="Handle (e.g. crypto_news)"
-                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Description"
                 rows={3}
-                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <button
               type="submit"
               disabled={creating}
-              className="mt-5 w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              className="mt-5 w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
             >
               <FiCheck /> {creating ? 'Creating...' : 'Create channel'}
             </button>

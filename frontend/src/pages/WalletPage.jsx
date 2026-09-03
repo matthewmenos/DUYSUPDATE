@@ -176,7 +176,7 @@ const handleDisconnect = () => {
           )}
           {isConnected && wagmiAddress ? (
             <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white">
+              <div className="flex items-center justify-between rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold text-white">
                 <span>Connected via Web3Modal</span>
                 <button onClick={handleDisconnect} className="text-xs underline">Disconnect</button>
               </div>
@@ -184,7 +184,7 @@ const handleDisconnect = () => {
           ) : (
             <button
               onClick={() => open()}
-              className="mt-4 w-full rounded-full bg-gradient-to-r from-amber-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              className="mt-4 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
             >
               Connect Wallet
             </button>
@@ -197,7 +197,7 @@ const handleDisconnect = () => {
         <button onClick={() => setActiveModal('deposit')} className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">
           <FiArrowDown /> Deposit
         </button>
-                <button onClick={() => setActiveModal('withdraw')} className="flex items-center gap-2 rounded-full bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-semibold text-white">
+                <button onClick={() => setActiveModal('withdraw')} className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white">
           <FiArrowUp /> Withdraw
         </button>
         <button onClick={() => setActiveModal('swap')} className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white">
@@ -225,7 +225,7 @@ const handleDisconnect = () => {
                   <p className="font-bold text-white">
                     {tx.kind === 'withdrawal' ? '-' : '+'}${Number(tx.amount).toFixed(2)}
                   </p>
-                  <p className={`text-xs capitalize ${txStatus(tx) === 'completed' ? 'text-green-400' : 'text-amber-400'}`}>
+                  <p className={`text-xs capitalize ${txStatus(tx) === 'completed' ? 'text-green-400' : 'text-blue-400'}`}>
                     {txStatus(tx).replace('_', ' ')}
                   </p>
                 </div>
@@ -264,7 +264,7 @@ const handleDisconnect = () => {
                   value={modalForm.amountUsd || ''}
                   onChange={(e) => setModalForm({ ...modalForm, amountUsd: e.target.value })}
                   placeholder="Amount (USD)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500">Verified tokens accepted: DUYS, USDT, BNB and major tokens.</p>
                 <button type="submit" disabled={busy} className="w-full rounded-full bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
@@ -282,16 +282,16 @@ const handleDisconnect = () => {
                   value={modalForm.amount || ''}
                   onChange={(e) => setModalForm({ ...modalForm, amount: e.target.value })}
                   placeholder="Amount (USD)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   value={modalForm.walletAddress || ''}
                   onChange={(e) => setModalForm({ ...modalForm, walletAddress: e.target.value })}
                   placeholder="BSC address (0x…)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500">Withdrawals are queued for review before processing.</p>
-                <button type="submit" disabled={busy} className="w-full rounded-full bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <button type="submit" disabled={busy} className="w-full rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                   {busy ? 'Submitting…' : 'Withdraw'}
                 </button>
               </form>

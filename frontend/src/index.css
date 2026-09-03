@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * DUYS theme variables — brand palette: black & blue.
+ * Values are RGB triplets so Tailwind can inject alpha
+ * (see tailwind.config.js: rgb(var(--c-*) / <alpha-value>)).
+ *
+ * Dark is the default theme. html.light switches to the light palette.
+ */
+:root {
+  color-scheme: dark;
+  --c-bg: 0 0 0;              /* page background: pure black          */
+  --c-text: 255 255 255;      /* primary text                         */
+  --c-gray-300: 203 213 225;  /* soft text                            */
+  --c-gray-400: 148 163 184;  /* muted text                           */
+  --c-gray-500: 100 116 139;  /* dim text                             */
+  --c-gray-600: 71 85 105;    /* strong borders / icons               */
+  --c-gray-700: 36 48 66;     /* borders                              */
+  --c-gray-800: 19 28 44;     /* raised surface (inputs, cards)       */
+  --c-gray-900: 10 16 28;     /* subtle surface (hover, wells)        */
+}
+
+html.light {
+  color-scheme: light;
+  --c-bg: 244 247 251;        /* page background: blue-tinted white   */
+  --c-text: 15 23 42;         /* primary text: near-black blue        */
+  --c-gray-300: 51 65 85;     /* soft text                            */
+  --c-gray-400: 71 85 105;    /* muted text                           */
+  --c-gray-500: 100 116 139;  /* dim text                             */
+  --c-gray-600: 148 163 184;  /* strong borders / icons               */
+  --c-gray-700: 203 213 225;  /* borders                              */
+  --c-gray-800: 232 238 246;  /* raised surface (inputs, cards)       */
+  --c-gray-900: 218 227 240;  /* subtle surface (hover, wells)        */
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,8 +46,8 @@ body,
 #root {
   height: 100%;
   width: 100%;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: rgb(var(--c-bg));
+  color: rgb(var(--c-text));
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -22,25 +55,29 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar (themed) */
 ::-webkit-scrollbar {
   width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: rgb(var(--c-bg));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333333;
+  background: rgb(var(--c-gray-700));
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555555;
+  background: rgb(var(--c-gray-600));
 }

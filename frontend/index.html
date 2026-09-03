@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#000000" />
     <title>DUYS - Social Media Platform</title>
+    <script>
+      /* Apply the persisted theme before first paint (no flash).
+         Dark (black & blue) is the default. */
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem('duys-theme') || '{}');
+          var theme = (saved.state && saved.state.theme) || 'dark';
+          if (theme === 'light') document.documentElement.classList.add('light');
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) { /* fall back to dark */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
+import useThemeStore from '../stores/themeStore';
 
 /**
  * SettingsPage — account settings.
@@ -23,6 +24,8 @@ import useAuthStore from '../stores/authStore';
 function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
 
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -116,6 +119,36 @@ function SettingsPage() {
           </button>
         </form>
       </section>
+      {/* Appearance */}
+      <section className="border-b border-gray-700">
+        <div className="p-4">
+          <h3 className="flex items-center gap-2 font-semibold mb-3"><FiSun className="w-5 h-5" /> Appearance</h3>
+          <p className="text-sm text-gray-500 mb-3">DUYS uses a black &amp; blue palette. Pick dark or light.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                theme === 'dark'
+                  ? 'bg-blue-600 text-white'
+                  : 'border border-gray-700 text-gray-300 hover:bg-gray-900'
+              }`}
+            >
+              <FiMoon className="w-4 h-4" /> Dark
+            </button>
+            <button
+              onClick={() => setTheme('light')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                theme === 'light'
+                  ? 'bg-blue-600 text-white'
+                  : 'border border-gray-700 text-gray-300 hover:bg-gray-900'
+              }`}
+            >
+              <FiSun className="w-4 h-4" /> Light
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Placeholder sections */}
       <Section icon={<FiLock className="w-5 h-5" />} title="Password">
         <p className="text-sm text-gray-500">Changing your password requires a dedicated backend endpoint, which is not available yet.</p>

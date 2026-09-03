@@ -120,7 +120,7 @@ function StoriesPage() {
         >
           <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center bg-gray-900 overflow-hidden">
             {creating ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
             ) : (
               <FiPlus className="w-7 h-7 text-gray-400" />
             )}
@@ -139,7 +139,7 @@ function StoriesPage() {
             >
               <div
                 className={`w-16 h-16 rounded-full p-[2px] ${
-                  newest.is_viewed ? 'bg-gray-700' : 'bg-gradient-to-tr from-pink-500 to-purple-500'
+                  newest.is_viewed ? 'bg-gray-700' : 'bg-gradient-to-tr from-blue-600 to-blue-400'
                 }`}
               >
                 <img

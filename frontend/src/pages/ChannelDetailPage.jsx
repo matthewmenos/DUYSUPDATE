@@ -114,7 +114,7 @@ return (
               className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-semibold ${
                 channel.is_subscribed
                   ? 'border border-gray-700 text-gray-300 hover:bg-gray-900'
-                  : 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:opacity-90'
               }`}
             >
               {channel.is_subscribed ? <FiCheck /> : null}
@@ -165,20 +165,20 @@ return (
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                 placeholder="Channel name"
-                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <textarea
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                 placeholder="Description"
                 rows={4}
-                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <button
               type="submit"
               disabled={saving}
-              className="mt-5 w-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              className="mt-5 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save changes'}
             </button>

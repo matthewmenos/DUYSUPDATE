@@ -32,7 +32,7 @@ function LoginPage() {
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 mb-2">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-2">
             DUYS
           </h1>
           <p className="text-gray-400">Welcome back</p>
@@ -46,7 +46,7 @@ function LoginPage() {
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
@@ -58,7 +58,7 @@ function LoginPage() {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
@@ -66,7 +66,7 @@ function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg text-white font-semibold hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg text-white font-semibold hover:opacity-90 disabled:opacity-50 transition"
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
@@ -75,7 +75,7 @@ function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" className="text-pink-500 hover:underline">
+            <Link to="/register" className="text-blue-500 hover:underline">
               Sign up
             </Link>
           </p>

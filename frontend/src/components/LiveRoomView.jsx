@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import Hls from 'hls.js';
 import toast from 'react-hot-toast';
@@ -164,8 +164,8 @@ function LiveRoomView({ room, onClose, onEnded }) {
           {isHost && room.streamKey && (
             <div className="absolute bottom-3 left-3 right-3 bg-black/70 rounded-xl p-3 text-xs text-gray-300">
               <p className="font-semibold text-white mb-1">Streaming setup (OBS)</p>
-              <p>RTMP URL: <span className="text-pink-400">{room.rtmpUrl}</span></p>
-              <p>Stream key: <span className="text-pink-400">{room.streamKey}</span></p>
+              <p>RTMP URL: <span className="text-blue-400">{room.rtmpUrl}</span></p>
+              <p>Stream key: <span className="text-blue-400">{room.streamKey}</span></p>
             </div>
           )}
         </div>
@@ -195,9 +195,9 @@ function LiveRoomView({ room, onClose, onEnded }) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Send a message..."
-                className="flex-1 bg-gray-900 rounded-full px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="flex-1 bg-gray-900 rounded-full px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button type="submit" className="w-9 h-9 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center hover:opacity-90">
+              <button type="submit" className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center hover:opacity-90">
                 <FiSend className="w-4 h-4" />
               </button>
             </form>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
@@ -22,8 +22,18 @@ import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import PostDetailPage from './pages/PostDetailPage';
 import SettingsPage from './pages/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const queryClient = new QueryClient();
+
+/** Scroll to the top of the main window on every route change. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function App() {
   const { user, isLoading } = useAuthStore();
@@ -31,7 +41,7 @@ function App() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -39,6 +49,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
+        <ScrollToTop />
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
@@ -53,6 +64,7 @@ function App() {
             <Route path="/posts/:postId" element={<PostDetailPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
             <Route path="/messaging" element={<MessagingPage />} />
+            <Route path="/messaging/:conversationId" element={<MessagingPage />} />
             <Route path="/channels" element={<ChannelsPage />} />
             <Route path="/channels/:channelId" element={<ChannelDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
@@ -61,11 +73,23 @@ function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
+          {/* Authenticated users hitting auth pages go home */}
+          <Route path="/auth/*" element={<Navigate to={user ? "/" : "/login"} />} />
+
+          {/* Fallback: 404 for unmatched routes */}
+          <Route path="*" element={user ? <NotFoundPage /> : <Navigate to="/login" />} />
         </Routes>
       </Router>
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: user ? 'rgb(var(--c-gray-800))' : '#131c2c',
+            color: 'rgb(var(--c-text))',
+            border: '1px solid rgb(var(--c-gray-700))'
+          }
+        }}
+      />
     </QueryClientProvider>
   );
 }

@@ -143,7 +143,7 @@ function StoryViewer({ group, initialIndex = 0, onClose, onChanged }) {
           <div className="flex items-center justify-between">
             <div className="flex gap-1">
               {REACTIONS.map((emoji) => (
-                <button type="button" key={emoji} onClick={() => handleReact(emoji)} className={`w-9 h-9 rounded-full text-xl transition hover:bg-gray-800 ${reactions?.myReaction === emoji ? 'bg-pink-500/30 scale-110' : ''}`}>{emoji}</button>
+                <button type="button" key={emoji} onClick={() => handleReact(emoji)} className={`w-9 h-9 rounded-full text-xl transition hover:bg-gray-800 ${reactions?.myReaction === emoji ? 'bg-blue-500/30 scale-110' : ''}`}>{emoji}</button>
               ))}
             </div>
           </div>

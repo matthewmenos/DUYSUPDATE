@@ -92,7 +92,7 @@ function NotificationsPage() {
           <button
             onClick={handleMarkAll}
             disabled={unreadCount === 0}
-            className="flex items-center gap-1 text-sm text-amber-500 hover:text-amber-400 disabled:opacity-40"
+            className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-400 disabled:opacity-40"
           >
             <FiCheckCircle className="w-4 h-4" />
             Mark all read
@@ -117,7 +117,7 @@ function NotificationsPage() {
                   !n.read_at ? 'bg-gray-900/40' : ''
                 }`}
               >
-                {!n.read_at && <span className="mt-2 w-2 h-2 rounded-full bg-amber-500 shrink-0" />}
+                {!n.read_at && <span className="mt-2 w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
                 <img
                   src={n.actor_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(n.actor_display_name || n.actor_username || 'U')}&background=6366f1&color=fff`}
                   alt={n.actor_username}

@@ -117,7 +117,7 @@ function AdminPage() {
     <div className="max-w-6xl mx-auto border-l border-r border-gray-700 p-6 md:p-8">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-sm uppercase tracking-[0.2em] text-pink-400">Admin panel</p>
+        <p className="text-sm uppercase tracking-[0.2em] text-blue-400">Admin panel</p>
         <h2 className="text-3xl font-bold mt-2">Platform moderation</h2>
       </div>
 
@@ -146,7 +146,7 @@ function AdminPage() {
               <div key={label} className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-gray-400">{label}</span>
-                  <Icon className="text-pink-400" />
+                  <Icon className="text-blue-400" />
                 </div>
                 <p className="text-3xl font-bold">{value}</p>
               </div>
@@ -165,11 +165,11 @@ function AdminPage() {
                   <div key={r.id} className="rounded-xl border border-gray-700 bg-gray-900 p-3 flex items-center justify-between">
                     <div className="text-sm text-gray-300">
                       <span className="font-semibold">{r.reporter_display_name || r.reporter_username}</span>{' '}
-                      reported {r.entity_type}: <span className="text-pink-400">{r.reason}</span>
+                      reported {r.entity_type}: <span className="text-blue-400">{r.reason}</span>
                     </div>
                     <button
                       onClick={() => { setReportModal(r); setReportAction('rejected'); setReportNotes(''); }}
-                      className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1"
+                      className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1"
                     >
                       Review <FiArrowRight />
                     </button>
@@ -211,7 +211,7 @@ function AdminPage() {
                 </div>
                 <button
                   onClick={() => setReportModal(r)}
-                  className="shrink-0 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2"
+                  className="shrink-0 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2"
                 >
                   Review
                 </button>
@@ -235,7 +235,7 @@ function AdminPage() {
                 <div>
                   <p className="text-sm font-semibold">
                     {u.display_name || u.username}
-                    {u.is_admin && <span className="ml-2 text-[10px] text-pink-400 font-bold uppercase">Admin</span>}
+                    {u.is_admin && <span className="ml-2 text-[10px] text-blue-400 font-bold uppercase">Admin</span>}
                   </p>
                   <p className="text-xs text-gray-500">
                     @{u.username} · <span className={u.is_banned ? 'text-red-400' : 'text-green-400'}>
@@ -245,7 +245,7 @@ function AdminPage() {
                 </div>
               </button>
               <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => setUserModal(u.id)} className="text-xs text-amber-400 hover:text-amber-300">
+                <button onClick={() => setUserModal(u.id)} className="text-xs text-blue-400 hover:text-blue-300">
                   {u.is_banned ? 'Unban' : 'View'}
                 </button>
               </div>
@@ -273,7 +273,7 @@ function AdminPage() {
           <div className="grid lg:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
               <h3 className="text-lg font-bold mb-3">Token volume</h3>
-              <p className="text-3xl font-bold text-pink-400">
+              <p className="text-3xl font-bold text-blue-400">
                 {analytics ? Number(analytics.tokenVolume).toLocaleString() : '…'} DUYS
               </p>
             </div>
@@ -319,7 +319,7 @@ function AdminPage() {
                         ? a === 'approved'
                           ? 'bg-red-600 border-red-600 text-white'
                           : a === 'warned'
-                            ? 'bg-amber-600 border-amber-600 text-white'
+                            ? 'bg-blue-600 border-blue-600 text-white'
                             : 'bg-gray-700 border-gray-700 text-white'
                         : 'border-gray-700 text-gray-300 hover:bg-gray-900'
                     }`}
@@ -338,13 +338,13 @@ function AdminPage() {
               onChange={(e) => setReportNotes(e.target.value)}
               placeholder="Notes (optional)"
               rows={2}
-              className="w-full bg-black rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full bg-black rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
             <button
               onClick={handleResolveReport}
               disabled={busy}
-              className="w-full rounded-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2 text-sm disabled:opacity-50"
+              className="w-full rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 text-sm disabled:opacity-50"
             >
               {busy ? 'Resolving…' : 'Resolve report'}
             </button>
@@ -405,7 +405,7 @@ function UserModal({ userId, onClose, onBan, onUnban }) {
               <ul className="space-y-1 text-xs text-gray-300">
                 {(data.adminLogs || []).slice(0, 4).map((l) => (
                   <li key={l.id}>
-                    <span className="text-pink-400">{l.action}</span>
+                    <span className="text-blue-400">{l.action}</span>
                     <span className="text-gray-500"> · {formatDistanceToNow(new Date(l.created_at), { addSuffix: true })}</span>
                   </li>
                 ))}
@@ -423,7 +423,7 @@ function UserModal({ userId, onClose, onBan, onUnban }) {
                 {(data.reportsReceived || []).slice(0, 4).map((r) => (
                   <li key={r.id} className="flex justify-between">
                     <span>{r.reason}</span>
-                    <span className={r.status === 'pending' ? 'text-amber-400' : 'text-gray-500'}>{r.status}</span>
+                    <span className={r.status === 'pending' ? 'text-blue-400' : 'text-gray-500'}>{r.status}</span>
                   </li>
                 ))}
               </ul>

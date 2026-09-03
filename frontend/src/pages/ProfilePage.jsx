@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,7 +17,7 @@ import Post from '../components/Post';
 const PLACEHOLDER = 'https://via.placeholder.com/150';
 
 /**
- * ProfilePage â€” public + own profile.
+ * ProfilePage — public + own profile.
  *  - Banner, avatar, name, username, bio, location, website, joined date.
  *  - Follow / unfollow button (POST|DELETE /users/:id/follow).
  *  - Tabs: Posts, Media (backed by /feed/user/:id; Replies/Likes need a
@@ -122,7 +122,7 @@ function ProfilePage() {
       </div>
 
       {/* Banner */}
-      <div className="h-40 bg-gradient-to-r from-purple-600 to-blue-600">
+      <div className="h-40 bg-gradient-to-r from-blue-700 to-blue-500">
         {profile.banner_url && (
           <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />
         )}
@@ -258,7 +258,7 @@ function ProfilePage() {
   );
 }
 /**
- * Edit profile modal — avatar upload + editable fields via PATCH /users/me.
+ * Edit profile modal � avatar upload + editable fields via PATCH /users/me.
  */
 function EditProfileModal({ profile, setUser, onClose, onSaved }) {
   const [displayName, setDisplayName] = useState(profile.display_name || '');

@@ -201,7 +201,7 @@ return (
           <h2 className="text-xl font-bold">Messages</h2>
           <button
             onClick={startNewChat}
-            className="w-9 h-9 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center hover:opacity-90"
+            className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center hover:opacity-90"
             aria-label="New message"
           >
             <FiMessageCircle className="w-4 h-4" />
@@ -228,7 +228,7 @@ return (
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm truncate">{conv.display_name}</span>
                     {conv.unread_count > 0 && (
-                      <span className="bg-pink-500 text-white text-xs rounded-full px-2 py-0.5">
+                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
                         {conv.unread_count}
                       </span>
                     )}
@@ -279,7 +279,7 @@ return (
                     <div
                       className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm ${
                         isOwn(msg)
-                          ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-sm'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-br-sm'
                           : 'bg-gray-800 text-white rounded-bl-sm'
                       }`}
                     >
@@ -349,12 +349,12 @@ return (
                   emitTyping();
                 }}
                 placeholder="Type a message..."
-                className="flex-1 bg-gray-900 rounded-full px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="flex-1 bg-gray-900 rounded-full px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="w-9 h-9 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center hover:opacity-90 disabled:opacity-40"
+                className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center hover:opacity-90 disabled:opacity-40"
                 aria-label="Send"
               >
                 <FiSend className="w-4 h-4" />
