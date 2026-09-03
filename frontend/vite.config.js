@@ -14,7 +14,10 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    // Vercel's project Root Directory is `backend/`, so the SPA must be built
+    // into `backend/dist` for Vercel to serve it (outputDirectory = "dist").
+    outDir: '../backend/dist',
+    emptyOutDir: true,
     sourcemap: true
   }
 });

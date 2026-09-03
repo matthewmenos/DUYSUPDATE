@@ -66,9 +66,9 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Long-running HTTP server — skipped on Vercel, where `api/index.js` mounts
-// this app under `/api` and Vercel manages the request lifecycle instead.
-// Socket.io also only works with a long-running server, not serverless.
+// Long-running HTTP server — skipped on Vercel, where `backend/api/index.js`
+// mounts this app under `/api` and Vercel manages the request lifecycle
+// instead. Socket.io also only works with a long-running server, not serverless.
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
