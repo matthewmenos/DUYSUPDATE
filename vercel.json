@@ -3,13 +3,14 @@
   "framework": null,
   "installCommand": "cd /vercel/path0 && npm install --no-audit --no-fund",
   "buildCommand": "cd /vercel/path0 && npm --workspace frontend run build",
+  "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "dist/**"
+      "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
   ]
 }
