@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "comment": "Single Vercel project: static frontend (Vite build) + serverless backend (root api/index.js re-exporting backend/src/app.js).",
   "buildCommand": "npm run build:frontend",
   "outputDirectory": "frontend/dist",
   "functions": {
