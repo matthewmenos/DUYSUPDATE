@@ -8,8 +8,8 @@ import app from '../backend/src/app.js';
  * vercel.json). The full Express app from `backend/src/app.js` is mounted at
  * `/api`, so a request to `/api/posts` reaches the `/posts` route.
  *
- * This project uses npm workspaces, so all backend dependencies are installed
- * at the repository root and are bundled with the function automatically.
+   * Backend dependencies are installed via `npm install --prefix backend`
+ * (see vercel.json installCommand) and are bundled with the function.
  */
 
 const server = express();
