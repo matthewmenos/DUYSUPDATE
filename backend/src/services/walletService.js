@@ -14,7 +14,7 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const DEFAULT_DUYS_PRICE_USD = 0.05; // configurable via env later
 
-function randouID() {
+function randomID() {
   return 'txn_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
@@ -60,7 +60,7 @@ export async function getTransactions(userId, limit = 20, beforeId = null) {
  */
 export async function initiateDeposit(userId, amountUsd, paymentMethod) {
   if (!amountUsd || amountUsd <= 0) throw new AppError('Invalid deposit amount', 400);
-  const ref = randouID();
+    const ref = randomID();
 
   const balance = await getWalletBalance(userId);
   await query(
@@ -122,7 +122,7 @@ export async function initiateWithdraw(userId, amount, walletAddress) {
     throw new AppError('Insufficient balance', 400);
   }
 
-  const ref = randouID();
+    const ref = randomID();
   await query(
     `INSERT INTO transactions (user_id, kind, amount, balance_after, description, reference_id, metadata)
      VALUES ($1, 'withdrawal', $2, $3, $4, $5, $6)`,

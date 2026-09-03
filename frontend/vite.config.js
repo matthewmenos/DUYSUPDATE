@@ -14,12 +14,9 @@ export default defineConfig({
     }
   },
   build: {
-    // Vercel's project Root Directory is either the repo root `/` or
-    // `frontend/` depending on how the project was imported. To be robust to
-    // both, Vite builds into its default `frontend/dist`, and the buildCommand
-    // in vercel.json additionally copies it to the repo-root `dist/` so that
-    // `outputDirectory: "dist"` resolves correctly no matter which root Vercel
-    // actually uses.
+    // Production deploys use the single Vercel project at the repo root:
+    // vercel.json runs `npm run build:frontend` and serves `frontend/dist`
+    // as the static output alongside the serverless backend (/api/*).
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false

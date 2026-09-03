@@ -3,6 +3,7 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { query, queryOne, queryAll } from '../config/database.js';
 import { uploadVerification, deleteVerification } from '../services/storage.js';
+import { authenticateJWT } from '../middleware/auth.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -172,12 +173,9 @@ router.post('/phone/verify', async (req, res) => {
  * POST /verify/face
  * Upload face photo for verification (stored in private R2 bucket)
  */
-router.post('/face', upload.single('face'), async (req, res) => {
+router.post('/face', authenticateJWT, upload.single('face'), async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    const userId = req.userId;
 
     if (!req.file) {
       return res.status(400).json({ error: 'Face image required' });
@@ -224,12 +222,9 @@ router.post('/face', upload.single('face'), async (req, res) => {
  * POST /verify/id
  * Upload ID document for verification (stored in private R2 bucket)
  */
-router.post('/id', upload.single('idDocument'), async (req, res) => {
+router.post('/id', authenticateJWT, upload.single('idDocument'), async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    const userId = req.userId;
 
     if (!req.file) {
       return res.status(400).json({ error: 'ID document required' });
@@ -277,12 +272,9 @@ router.post('/id', upload.single('idDocument'), async (req, res) => {
  * GET /verify/status
  * Get all user verifications status
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateJWT, async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    const userId = req.userId;
 
     const verifications = await queryAll(
       `SELECT type, is_verified, verified_at, created_at, expires_at

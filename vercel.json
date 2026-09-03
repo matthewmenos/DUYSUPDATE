@@ -1,22 +1,46 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "frontend": {
-      "root": "frontend",
-      "framework": "vite"
-    },
-    "backend": {
-      "root": "backend"
+  "comment": "Single Vercel project: static frontend (Vite build) + serverless backend (root api/index.js re-exporting backend/src/app.js).",
+  "buildCommand": "npm run build:frontend",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api(/.*)?",
-      "destination": { "type": "service", "service": "backend" }
+      "destination": "/api/index"
     },
     {
       "source": "/(.*)",
-      "destination": { "type": "service", "service": "frontend" }
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
   ]
 }
+

@@ -1,3 +1,4 @@
+import sanitizeHtml from 'sanitize-html';
 import { query, queryOne, queryAll, transaction } from '../config/database.js';
 
 /**
@@ -246,18 +247,6 @@ export async function quotePost(originalPostId, authorId, body) {
 
     return post;
   });
-}
-
-/**
- * Sanitize HTML
- */
-function sanitizeHtml(text) {
-  if (!text) return '';
-  // Basic XSS prevention - remove script tags and event handlers
-  return text
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
-    .substring(0, 5000); // Max 5000 chars
 }
 
 export default {

@@ -154,19 +154,22 @@ See [MIGRATION_README.md](MIGRATION_README.md) for complete API documentation.
 
 ## 🚢 Deployment
 
-### Backend
-Deploy to Render, Fly.io, or your preferred host:
+Both frontend and backend deploy to **a single Vercel project** (see
+[deployment docs](MIGRATION_README.md#6-deployment-vercel--single-project)):
+
+- `vercel.json` builds the frontend (`frontend/dist`) and serves it statically
+- The backend runs as a serverless function from the root `api/index.js`
+- `/api/*` routes to the backend; everything else falls back to the SPA
+- **Root Directory must stay at the repository root** when importing to Vercel
+
 ```bash
-# Set environment variables in dashboard
-# Push to production
+# Push to production — Vercel handles the rest
+git push
 ```
 
-### Frontend
-Deploy to Vercel, Netlify, or your preferred host:
-```bash
-npm run build
-# Deploy dist/ folder
-```
+> ⚠️ Serverless functions cannot hold WebSocket connections, so Socket.io
+> real-time features need a long-running host (Render/Fly.io/Railway) or a
+> polling fallback in fully serverless deployments.
 
 ## 🧪 Testing
 

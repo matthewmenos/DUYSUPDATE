@@ -43,11 +43,21 @@ export async function registerUser(email, username, password, displayName) {
       [email, username, displayName, passwordHash]
     );
 
-    const user = result.rows[0];
-    const accessToken = generateAccessToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id);
+    const userRow = result.rows[0];
+    const accessToken = generateAccessToken(userRow.id, userRow.email);
+    const refreshToken = generateRefreshToken(userRow.id);
 
-    return { user, accessToken, refreshToken };
+    return {
+      user: {
+        id: userRow.id,
+        email: userRow.email,
+        username: userRow.username,
+        display_name: userRow.display_name,
+        is_admin: false
+      },
+      accessToken,
+      refreshToken
+    };
   });
 }
 
@@ -83,7 +93,8 @@ export async function loginWithEmail(email, password) {
     user: {
       id: user.id,
       email: user.email,
-      username: user.username
+      username: user.username,
+      is_admin: user.is_admin
     },
     accessToken,
     refreshToken
@@ -95,7 +106,7 @@ export async function loginWithEmail(email, password) {
  */
 export async function loginWithGoogle(googleId, email, displayName, avatarUrl) {
   let user = await queryOne(
-    'SELECT id, email, username, is_banned FROM users WHERE google_id = $1',
+    'SELECT id, email, username, is_banned, is_admin FROM users WHERE google_id = $1',
     [googleId]
   );
 
@@ -103,9 +114,9 @@ export async function loginWithGoogle(googleId, email, displayName, avatarUrl) {
     // Create new user
     const username = email.split('@')[0] + Math.random().toString(36).substring(7);
     const result = await query(
-      `INSERT INTO users (google_id, email, username, display_name, avatar_url)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, username`,
+      `INSERT INTO users (google_id, email, username, display_name, avatar_url, is_admin)
+       VALUES ($1, $2, $3, $4, $5, false)
+       RETURNING id, email, username, is_admin`,
       [googleId, email, username, displayName, avatarUrl]
     );
     user = result.rows[0];
@@ -125,7 +136,8 @@ export async function loginWithGoogle(googleId, email, displayName, avatarUrl) {
     user: {
       id: user.id,
       email: user.email,
-      username: user.username
+      username: user.username,
+      is_admin: user.is_admin
     },
     accessToken,
     refreshToken

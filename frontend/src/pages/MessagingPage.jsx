@@ -30,7 +30,7 @@ function MessagingPage() {
   const { data: conversations = [], refetch: refetchConversations } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const res = await api.get('/messages', { params: { limit: 50 } });
+            const res = await api.get('/messaging', { params: { limit: 50 } });
       return res.data.conversations || [];
     }
   });
@@ -91,10 +91,10 @@ function MessagingPage() {
     setLoadingMessages(true);
     (async () => {
       try {
-        const res = await api.get(`/messages/${activeConv.id}/messages`, { params: { limit: 50 } });
+                const res = await api.get(`/messaging/${activeConv.id}/messages`, { params: { limit: 50 } });
         setMessages(res.data.messages.reverse());
         // Mark as read.
-        api.post(`/messages/${activeConv.id}/read`).catch(() => {});
+        api.post(`/messaging/${activeConv.id}/read`).catch(() => {});
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       } catch (err) {
         toast.error(err.response?.data?.error || 'Failed to load messages');
@@ -117,7 +117,7 @@ const openConversation = async (conv) => {
     const targetId = window.prompt('Enter the user ID to message:');
     if (!targetId) return;
     try {
-      const conv = (await api.get(`/messages/${targetId}`)).data;
+            const conv = (await api.get(`/messaging/${targetId}`)).data;
       setActiveConv(conv);
       refetchConversations();
     } catch (err) {
@@ -144,7 +144,7 @@ const openConversation = async (conv) => {
     setMessages((prev) => [...prev, temp]);
     setInput('');
     try {
-      const msg = (await api.post(`/messages/${activeConv.id}/message`, { body: text })).data;
+            const msg = (await api.post(`/messaging/${activeConv.id}/message`, { body: text })).data;
       setMessages((prev) => prev.map((m) => (m.optimistic ? msg : m)));
       refetchConversations();
     } catch (err) {
@@ -157,7 +157,7 @@ const openConversation = async (conv) => {
     const text = editText.trim();
     if (!text) return;
     try {
-      const msg = (await api.patch(`/messages/${messageId}`, { body: text })).data;
+            const msg = (await api.patch(`/messaging/messages/${messageId}`, { body: text })).data;
       setMessages((prev) => prev.map((m) => (Number(m.id) === Number(messageId) ? msg : m)));
       setEditingId(null);
       setEditText('');
@@ -169,7 +169,7 @@ const openConversation = async (conv) => {
   const handleDelete = async (messageId) => {
     if (!window.confirm('Delete this message?')) return;
     try {
-      await api.delete(`/messages/${messageId}`);
+            await api.delete(`/messaging/messages/${messageId}`);
       setMessages((prev) => prev.filter((m) => Number(m.id) !== Number(messageId)));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete message');

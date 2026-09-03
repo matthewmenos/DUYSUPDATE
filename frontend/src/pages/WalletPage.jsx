@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { FiCheck, FiX, FiRefreshCw, FiArrowDown, FiArrowUp, FiRepeat } from 'react-icons/fi';
 import { useAccount, useDisconnect } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { bsc } from 'viem/chains';
 import api from '../api/client';
 
@@ -20,6 +21,8 @@ function WalletPage() {
   // wagmi hooks for connected account state
   const { address: wagmiAddress, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  // Web3Modal control (open() launches the connect UI: MetaMask / WalletConnect)
+  const { open } = useWeb3Modal();
 
   // Balance
   const { data: balance, isLoading: loadingBal } = useQuery({
@@ -171,7 +174,7 @@ const handleDisconnect = () => {
           ) : (
             <div className="mt-3 text-gray-500 text-sm">Not connected</div>
           )}
-                    {isConnected && wagmiAddress ? (
+          {isConnected && wagmiAddress ? (
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white">
                 <span>Connected via Web3Modal</span>
@@ -179,11 +182,12 @@ const handleDisconnect = () => {
               </div>
             </div>
           ) : (
-            <w3m-button
-              onClick={() => { setActiveModal(null); }}
-              size="md"
-              variant="outline"
-            />
+            <button
+              onClick={() => open()}
+              className="mt-4 w-full rounded-full bg-gradient-to-r from-amber-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Connect Wallet
+            </button>
           )}
         </div>
       </div>
@@ -193,7 +197,7 @@ const handleDisconnect = () => {
         <button onClick={() => setActiveModal('deposit')} className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">
           <FiArrowDown /> Deposit
         </button>
-        <button onClick={() => setActiveModal('withdraw')} className="flex items-center gap-2 rounded-full bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-semibold text-white">
+                <button onClick={() => setActiveModal('withdraw')} className="flex items-center gap-2 rounded-full bg-amber-600 hover:bg-amber-500 px-4 py-2 text-sm font-semibold text-white">
           <FiArrowUp /> Withdraw
         </button>
         <button onClick={() => setActiveModal('swap')} className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white">
