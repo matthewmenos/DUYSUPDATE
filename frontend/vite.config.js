@@ -14,13 +14,14 @@ export default defineConfig({
     }
   },
   build: {
-    // Vercel's root directory is the repo root `/` and its effective Output
-    // Directory is `dist` (its Vite/Other preset default). Build into the
-    // repo-root `dist/` so Vercel finds the static output without needing any
-    // dashboard setting. `emptyOutDir` is required because outDir sits outside
-    // the Vite project root.
-    outDir: '../dist',
+    // Vercel's project Root Directory is either the repo root `/` or
+    // `frontend/` depending on how the project was imported. To be robust to
+    // both, Vite builds into its default `frontend/dist`, and the buildCommand
+    // in vercel.json additionally copies it to the repo-root `dist/` so that
+    // `outputDirectory: "dist"` resolves correctly no matter which root Vercel
+    // actually uses.
+    outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: false
   }
 });

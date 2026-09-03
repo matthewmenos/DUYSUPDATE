@@ -1,17 +1,15 @@
 /**
- * Vercel serverless entry point (API only).
+ * Vercel serverless entry point (API only) — repo-root copy.
  *
- * Vercel's project Root Directory is the repository root (`/`), so this
- * function lives at `api/index.js` and receives every request whose visible
- * path starts with `/api` (see the rewrites in `vercel.json`). The full
- * Express backend (`backend/src/app.js`) is mounted at `/api`, so a request
- * to `/api/posts` reaches the `/posts` route.
+ * The full Express backend (`backend/src/app.js`) is mounted under `/api`,
+ * so a request to `/api/posts` reaches the `/posts` route. A twin copy lives
+ * at `frontend/api/index.js` for the case where Vercel's project Root
+ * Directory is `frontend/`; this root copy is used when the Root Directory
+ * is the repo root `/`. Only one is ever active, depending on Vercel's
+ * Root Directory setting.
  *
- * Backend workspace dependencies (express, pg, joi, ...) are hoisted into
- * the root `node_modules` by `npm install` (npm workspaces), so they resolve.
- *
- * The SPA is served statically from `frontend/dist` (the `outputDirectory`
- * in `vercel.json`) with an `/index.html` fallback rewrite for client routes.
+ * The SPA is served statically (see `outputDirectory` in vercel.json) with
+ * an `/index.html` fallback rewrite for client-side routes.
  */
 import express from 'express';
 import app from '../backend/src/app.js';
