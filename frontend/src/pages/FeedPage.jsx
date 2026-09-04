@@ -41,6 +41,9 @@ function FeedPage() {
 
   return (
     <div className="max-w-2xl mx-auto border-l border-r border-gray-700">
+      {/* Story rings — top of feed, scrolls away under the sticky header */}
+      <StoryBar />
+
       {/* Header */}
       <div className="sticky top-0 bg-black/80 backdrop-blur border-b border-gray-700 p-4 z-10">
         <div className="flex items-center justify-between mb-4">
@@ -80,9 +83,6 @@ function FeedPage() {
           />
         </div>
       </div>
-
-      {/* Story rings */}
-      <StoryBar />
 
       {/* Posts */}
       <div>
