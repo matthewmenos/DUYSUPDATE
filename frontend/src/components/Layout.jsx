@@ -95,11 +95,21 @@ function Layout({ children }) {
   return (
     <div className="flex h-[100dvh] md:h-screen bg-black text-white">
       <aside className="hidden md:flex md:w-20 xl:w-64 shrink-0 border-r border-gray-700 flex-col p-3 xl:p-4">
-        <div className="mb-8 flex items-center md:justify-center xl:justify-between">
+        <div className="mb-8 flex items-center md:justify-center xl:justify-between gap-2">
           <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">DUYS</h1>
-          <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} aria-label="Toggle theme" className="hidden xl:flex w-9 h-9 rounded-full items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
-            {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <Link to="/notifications" title="Notifications" className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
+              <FiBell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} aria-label="Toggle theme" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
+              {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
         <nav className="flex-1 space-y-2">
           {navItems.map((item) => (<NavLink key={item.path} item={item} showLabel={false} />))}
@@ -113,9 +123,19 @@ function Layout({ children }) {
       <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between bg-black/90 backdrop-blur border-b border-gray-700 px-4 h-14">
         <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="p-2 -ml-2 rounded-full hover:bg-gray-800"><FiMenu className="w-6 h-6" /></button>
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">DUYS</h1>
-        <button onClick={toggleTheme} aria-label="Toggle theme" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
-          {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <Link to="/notifications" title="Notifications" className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
+            <FiBell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+          <button onClick={toggleTheme} aria-label="Toggle theme" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
+            {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-center justify-around bg-black/95 backdrop-blur border-t border-gray-700 h-14 pb-safe">
@@ -141,7 +161,7 @@ function Layout({ children }) {
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60 overlay-fade" onClick={() => setDrawerOpen(false)} />
-          <aside className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-black border-l border-gray-700 p-4 flex flex-col drawer-slide">
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-black border-r border-gray-700 p-4 flex flex-col drawer-slide">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold">Menu</h2>
               <button onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="w-9 h-9 rounded-full hover:bg-gray-800 flex items-center justify-center"><FiX className="w-5 h-5" /></button>

@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/client';
 import Post from '../components/Post';
-import { FiSearch } from 'react-icons/fi';
+import StoryBar from '../components/StoryBar';
+import CreateMenu from '../components/CreateMenu';
+import CreatePostModal from '../components/CreatePostModal';
+import { FiSearch, FiEdit3 } from 'react-icons/fi';
 
 function FeedPage() {
   const [scope, setScope] = useState('for_you');
+  const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
 
   // React Query v5: no onSuccess option — derive posts directly from data.
@@ -41,6 +45,12 @@ function FeedPage() {
       <div className="sticky top-0 bg-black/80 backdrop-blur border-b border-gray-700 p-4 z-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">{scope === 'for_you' ? 'For You' : 'Following'}</h2>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 text-sm font-semibold hover:opacity-90 transition"
+          >
+            <FiEdit3 className="w-4 h-4" /> New Post
+          </button>
         </div>
 
         {/* Scope Tabs */}
@@ -71,6 +81,9 @@ function FeedPage() {
         </div>
       </div>
 
+      {/* Story rings */}
+      <StoryBar />
+
       {/* Posts */}
       <div>
         {isLoading ? (
@@ -96,6 +109,13 @@ function FeedPage() {
           </>
         )}
       </div>
+
+      {/* Mobile create FAB + menu */}
+      <CreateMenu />
+
+      {showCreate && (
+        <CreatePostModal onClose={() => setShowCreate(false)} onCreated={() => queryClient.invalidateQueries({ queryKey: ['feed'] })} />
+      )}
     </div>
   );
 }
