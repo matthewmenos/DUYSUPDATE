@@ -52,6 +52,16 @@ const useAuthStore = create(
         return user;
       },
 
+      // Google login — exchanges a Google Identity Services ID token for DUYS tokens
+      loginWithGoogleCredential: async (credential) => {
+        const response = await api.post('/auth/google', { credential });
+        const { user, accessToken, refreshToken } = response.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        set({ user, accessToken, refreshToken });
+        return user;
+      },
+
       // Logout
       logout: () => {
         localStorage.removeItem('accessToken');

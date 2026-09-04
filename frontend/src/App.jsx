@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import useAuthStore from './stores/authStore';
 
 // Pages
@@ -48,7 +49,8 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <ErrorBoundary>
+        <Router>
         <ScrollToTop />
         <Routes>
           {/* Auth Routes */}
@@ -79,17 +81,18 @@ function App() {
           {/* Fallback: 404 for unmatched routes */}
           <Route path="*" element={user ? <NotFoundPage /> : <Navigate to="/login" />} />
         </Routes>
-      </Router>
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: user ? 'rgb(var(--c-gray-800))' : '#131c2c',
-            color: 'rgb(var(--c-text))',
-            border: '1px solid rgb(var(--c-gray-700))'
-          }
-        }}
-      />
+        </Router>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: user ? 'rgb(var(--c-gray-800))' : '#131c2c',
+              color: 'rgb(var(--c-text))',
+              border: '1px solid rgb(var(--c-gray-700))'
+            }
+          }}
+        />
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

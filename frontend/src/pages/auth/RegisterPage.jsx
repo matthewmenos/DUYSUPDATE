@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
+import GoogleLoginButton from '../../components/GoogleLoginButton';
 import toast from 'react-hot-toast';
 
 function RegisterPage() {
   const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
+  const loginWithGoogleCredential = useAuthStore((state) => state.loginWithGoogleCredential);
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -42,13 +44,28 @@ function RegisterPage() {
         formData.displayName
       );
       toast.success('Account created successfully!');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Google sign-up: same endpoint — the backend creates the account on
+  // first sign-in if the Google account is not linked yet.
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setIsLoading(true);
+    try {
+      await loginWithGoogleCredential(credential);
+      toast.success('Account created with Google!');
+      navigate('/', { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Google sign-up failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loginWithGoogleCredential, navigate]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -129,6 +146,14 @@ function RegisterPage() {
             {isLoading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-700" />
+          <span className="text-sm text-gray-500">or sign up with</span>
+          <div className="h-px flex-1 bg-gray-700" />
+        </div>
+
+        <GoogleLoginButton onCredential={handleGoogleCredential} />
 
         <div className="mt-6 text-center">
           <p className="text-gray-400">

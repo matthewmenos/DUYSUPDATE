@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
+import GoogleLoginButton from '../../components/GoogleLoginButton';
 import toast from 'react-hot-toast';
 
 function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const loginWithGoogleCredential = useAuthStore((state) => state.loginWithGoogleCredential);
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,13 +22,27 @@ function LoginPage() {
     try {
       await login(formData.email, formData.password);
       toast.success('Logged in successfully!');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Login failed');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Google Identity Services hands us the ID token credential here
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setIsLoading(true);
+    try {
+      await loginWithGoogleCredential(credential);
+      toast.success('Logged in with Google!');
+      navigate('/', { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Google login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loginWithGoogleCredential, navigate]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -71,6 +87,14 @@ function LoginPage() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-700" />
+          <span className="text-sm text-gray-500">or continue with</span>
+          <div className="h-px flex-1 bg-gray-700" />
+        </div>
+
+        <GoogleLoginButton onCredential={handleGoogleCredential} />
 
         <div className="mt-6 text-center">
           <p className="text-gray-400">

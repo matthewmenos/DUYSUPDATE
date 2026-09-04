@@ -1,32 +1,35 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/client';
 import Post from '../components/Post';
 import { FiSearch } from 'react-icons/fi';
 
 function FeedPage() {
   const [scope, setScope] = useState('for_you');
-  const [posts, setPosts] = useState([]);
+  const queryClient = useQueryClient();
 
+  // React Query v5: no onSuccess option — derive posts directly from data.
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['feed', scope],
     queryFn: async () => {
       const response = await api.get(`/feed/${scope === 'channels' ? 'channel' : scope}`);
       return response.data.posts;
-    },
-    onSuccess: (data) => {
-      setPosts(data);
     }
   });
+  const posts = data ?? [];
 
   const handleLoadMore = async () => {
     if (posts.length === 0) return;
     const lastPost = posts[posts.length - 1];
     try {
-      const response = await api.get(`/feed/${scope}`, {
+      const response = await api.get(`/feed/${scope === 'channels' ? 'channel' : scope}`, {
         params: { beforeId: lastPost.id }
       });
-      setPosts([...posts, ...response.data.posts]);
+      const more = response.data.posts ?? [];
+      if (more.length > 0) {
+        // Append the next page into the query cache so `posts` stays in sync
+        queryClient.setQueryData(['feed', scope], [...posts, ...more]);
+      }
     } catch (error) {
       console.error('Failed to load more posts');
     }

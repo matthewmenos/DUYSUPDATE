@@ -71,13 +71,15 @@ router.post('/login', async (req, res) => {
 
 /**
  * POST /auth/google
+ * Exchanges a Google Identity Services ID token (the GIS `credential` JWT)
+ * for DUYS JWTs. The credential is verified against Google's tokeninfo
+ * endpoint — signature, expiry and issuer are validated by Google, and we
+ * additionally require the audience to match GOOGLE_CLIENT_ID and the
+ * email to be verified. Never trust raw googleId/email from the client.
  */
 router.post('/google', async (req, res) => {
   const schema = Joi.object({
-    googleId: Joi.string().required(),
-    email: Joi.string().email().required(),
-    displayName: Joi.string().required(),
-    avatarUrl: Joi.string().uri().optional()
+    credential: Joi.string().required()
   });
 
   const { error, value } = schema.validate(req.body);
@@ -85,19 +87,33 @@ router.post('/google', async (req, res) => {
     return res.status(400).json({ error: error.details[0].message });
   }
 
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(500).json({ error: 'Google login is not configured on the server' });
+  }
+
   try {
+    const tokenInfoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(value.credential)}`
+    );
+    if (!tokenInfoRes.ok) {
+      return res.status(401).json({ error: 'Invalid Google credential' });
+    }
+    const info = await tokenInfoRes.json();
+
+    const validIss = info.iss === 'accounts.google.com' || info.iss === 'https://accounts.google.com';
+    if (info.aud !== clientId || !validIss || info.email_verified !== 'true') {
+      return res.status(401).json({ error: 'Google credential failed verification' });
+    }
+
     const { user, accessToken, refreshToken } = await authService.loginWithGoogle(
-      value.googleId,
-      value.email,
-      value.displayName,
-      value.avatarUrl
+      info.sub,
+      info.email,
+      info.name || info.email.split('@')[0],
+      info.picture
     );
 
-    res.json({
-      user,
-      accessToken,
-      refreshToken
-    });
+    res.json({ user, accessToken, refreshToken });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
