@@ -72,3 +72,6 @@ __pycache__/
 
 # Instance data (legacy)
 instance/
+
+# Legacy Flask reference app (kept as design/feature source — not part of the new stack)
+DUYS/

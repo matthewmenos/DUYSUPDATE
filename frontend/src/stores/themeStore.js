@@ -17,7 +17,7 @@ function applyTheme(theme) {
 
   // Keep the mobile status bar / browser chrome in sync with the theme.
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f7fb' : '#000000');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#f7f9f9' : '#1d9bf6');
 }
 
 const useThemeStore = create(

@@ -83,12 +83,15 @@ function App() {
         </Routes>
         </Router>
         <Toaster
-          position="top-center"
+          position="bottom-center"
           toastOptions={{
             style: {
               background: user ? 'rgb(var(--c-gray-800))' : '#131c2c',
               color: 'rgb(var(--c-text))',
-              border: '1px solid rgb(var(--c-gray-700))'
+              border: '1px solid rgb(var(--c-gray-700))',
+              borderRadius: '999px',
+              fontWeight: 700,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.28)'
             }
           }}
         />

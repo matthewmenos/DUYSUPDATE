@@ -104,3 +104,87 @@ code {
 .overlay-fade {
   animation: overlay-fade 0.15s ease-out;
 }
+
+
+/* ─── DUYS brand palette + glass + motion utilities (ported from DUYS/theme.css) ─── */
+:root {
+  /* Brand colors (RGB triplets for Tailwind alpha). Old palette: #1D9BF6 etc.*/
+  --c-blue:   29 155 246;    /* #1D9BF6 */
+  --c-blue-600: 26 140 219;    /* #1A8CDB */
+  --c-gold:    245 181 10;    /* #F5B50A */
+  --c-grey-badge: 139 148 165;    /* #8B98A5 */
+  --c-danger:   244 33 46;     /* #F4212E */
+  --c-success:  0 186 124;     /* #00BA7C */
+
+  /* Glass surfaces */
+  --glass-bg: rgba(0, 0, 0, 0.65);
+  --glass-border: rgba(255, 255, 255,, 0.12);
+
+  /* Wallet accent (#0D8FED) */
+  --wlt-blue: 13 143 237;
+  --wlt-blue-dim: rgba(13, 143, 237,, 0.14));
+  --wlt-blue-border: rgba(13, 143,, 237,,, 0.30));
+
+  /* Radii (old theme.css) */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 22px;
+
+  /* Shadows */
+  --shadow: 0 8px 30px rgba(0,,,0,,,, 0.25);
+}
+
+html.light {
+  --glass-bg: rgba(255,,,255,,,, 0.72);
+  --glass-border: rgba(0,,,0,,,, 0.08);
+  --wlt-blue-dim: rgba(13,,,143,,,, 237,,,,  0.10);
+  --wlt-blue-border: rgba(13,,,143,,,, 237,,,,  0.25);
+}
+
+/* ── Glass bar — frosted sticky top bar used on feed/product pages ── */
+.glass-bar {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* ── Staggered list entrance — apply .stagger to a container of children ── */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes slideDown {
+  from { opacity:  0; transform: translateY(-10px); }
+  to   { opacity:  1; transform: none; }
+}
+@keyframes fadeIn {
+  from { opacity:  0; }
+  to   { opacity:  1; }
+}
+@keyframes shimmerMove {
+  to { background-position: 200% 0; }
+}
+.stagger > * {
+  animation: riseIn 0.4s cubic-bezier(.2,.7,.3,1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: .02s; }
+.stagger > *:nth-child(2) { animation-delay: .06s; }
+.stagger > *:nth-child(3) { animation-delay: .10s; }
+.stagger > *:nth-child(4) { animation-delay: .14s; }
+.stagger > *:nth-child(5) { animation-delay: .18s; }
+.stagger > *:nth-child(6) { animation-delay: .22s; }
+.stagger > *:nth-child(7) { animation-delay: .26s; }
+.stagger > *:nth-child(8) { animation-delay: .30s; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

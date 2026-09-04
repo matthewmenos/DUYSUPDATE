@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "DUYS",
+  "short_name": "DUYS",
+  "description": "Post. Connect. Broadcast. Earn $DUYS.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#1d9bf6",
+  "categories": ["social", "communication"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Home", "short_name": "Home", "url": "/?source=shortcut", "icons": [{ "src": "/favicon-48.png", "sizes": "48x48" }] },
+    { "name": "Messages", "short_name": "DMs", "url": "/messaging?source=shortcut", "icons": [{ "src": "/favicon-48.png", "sizes": "48x48" }] },
+    { "name": "Wallet", "short_name": "Wallet", "url": "/wallet?source=shortcut", "icons": [{ "src": "/favicon-48.png", "sizes": "48x48" }] }
+  ]
+}
