@@ -32,7 +32,8 @@ export async function registerUser(email, username, password, displayName) {
     );
 
     if (existing) {
-      throw new Error('Email or username already exists');
+      const emailTaken = await queryOne('SELECT id FROM users WHERE email = $1', [email]);
+      throw new Error(emailTaken ? 'An account with this email already exists' : 'That username is already taken');
     }
 
     // Create user

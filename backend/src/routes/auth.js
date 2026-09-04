@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
       refreshToken
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message || 'Registration failed. Please try again.' });
   }
 });
 
@@ -65,7 +65,10 @@ router.post('/login', async (req, res) => {
       refreshToken
     });
   } catch (err) {
-    res.status(401).json({ error: err.message });
+    if (err.code === 'ECONNREFUSED') {
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+    res.status(401).json({ error: err.message || 'Login failed. Please try again.' });
   }
 });
 

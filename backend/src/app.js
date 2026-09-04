@@ -8,7 +8,6 @@ import dotenv from 'dotenv';
 import { pool } from './config/database.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateJWT, requireAdmin } from './middleware/auth.js';
-import { initSocket } from './services/socket.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -68,7 +67,8 @@ app.use(errorHandler);
 
 // Long-running HTTP server — skipped on Vercel, where `api/index.js` mounts
 // this app under `/api` and Vercel manages the request lifecycle instead.
-// Socket.io also only works with a long-running server, not serverless.
+// Socket.io also only works with a long-running server, not serverless, so it
+// is loaded lazily here to keep the serverless bundle minimal.
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
@@ -76,6 +76,7 @@ if (!process.env.VERCEL) {
   });
 
   // Attach Socket.io for real-time live features (viewers, chat).
+  const { initSocket } = await import('./services/socket.js');
   initSocket(server);
 
   const shutdown = async (signal) => {

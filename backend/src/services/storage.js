@@ -1,17 +1,34 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const r2Client = new S3Client({
-  region: 'auto',
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
-  },
-  endpoint: process.env.R2_ENDPOINT
-});
+/*
+ * Cloudflare R2 (S3-compatible) storage.
+ *
+ * The AWS SDK is loaded LAZILY (dynamic import on first use) instead of at
+ * module level. This keeps the serverless function's cold-start bundle free
+ * of the SDK — upload endpoints only pay for it when actually used — and
+ * avoids bundler tracing issues with the SDK's dynamic internals.
+ */
+
+let r2ClientPromise = null;
+
+async function getR2Client() {
+  if (!r2ClientPromise) {
+    r2ClientPromise = (async () => {
+      const { S3Client } = await import('@aws-sdk/client-s3');
+      return new S3Client({
+        region: 'auto',
+        credentials: {
+          accessKeyId: process.env.R2_ACCESS_KEY_ID,
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+        },
+        endpoint: process.env.R2_ENDPOINT
+      });
+    })();
+  }
+  return r2ClientPromise;
+}
 
 const PUBLIC_BUCKET = process.env.R2_BUCKET_PUBLIC || 'duys-media-public';
 const VERIFICATION_BUCKET = process.env.R2_BUCKET_VERIFICATION || 'duys-verification-private';
@@ -26,6 +43,10 @@ const PUBLIC_URL = process.env.R2_BUCKET_PUBLIC_URL || process.env.R2_ENDPOINT;
  */
 export async function uploadPublic(key, body, contentType = 'application/octet-stream') {
   try {
+    const [{ PutObjectCommand }, r2Client] = await Promise.all([
+      import('@aws-sdk/client-s3'),
+      getR2Client()
+    ]);
     const command = new PutObjectCommand({
       Bucket: PUBLIC_BUCKET,
       Key: key,
@@ -50,6 +71,10 @@ export async function uploadPublic(key, body, contentType = 'application/octet-s
  */
 export async function uploadVerification(key, body, contentType = 'application/octet-stream') {
   try {
+    const [{ PutObjectCommand }, r2Client] = await Promise.all([
+      import('@aws-sdk/client-s3'),
+      getR2Client()
+    ]);
     const command = new PutObjectCommand({
       Bucket: VERIFICATION_BUCKET,
       Key: key,
@@ -73,6 +98,11 @@ export async function uploadVerification(key, body, contentType = 'application/o
  */
 export async function getVerificationUrl(key, expiresIn = 3600) {
   try {
+    const [{ GetObjectCommand }, { getSignedUrl }, r2Client] = await Promise.all([
+      import('@aws-sdk/client-s3'),
+      import('@aws-sdk/s3-request-presigner'),
+      getR2Client()
+    ]);
     const command = new GetObjectCommand({
       Bucket: VERIFICATION_BUCKET,
       Key: key
@@ -92,6 +122,10 @@ export async function getVerificationUrl(key, expiresIn = 3600) {
  */
 export async function deletePublic(key) {
   try {
+    const [{ DeleteObjectCommand }, r2Client] = await Promise.all([
+      import('@aws-sdk/client-s3'),
+      getR2Client()
+    ]);
     const command = new DeleteObjectCommand({
       Bucket: PUBLIC_BUCKET,
       Key: key
@@ -110,6 +144,10 @@ export async function deletePublic(key) {
  */
 export async function deleteVerification(key) {
   try {
+    const [{ DeleteObjectCommand }, r2Client] = await Promise.all([
+      import('@aws-sdk/client-s3'),
+      getR2Client()
+    ]);
     const command = new DeleteObjectCommand({
       Bucket: VERIFICATION_BUCKET,
       Key: key

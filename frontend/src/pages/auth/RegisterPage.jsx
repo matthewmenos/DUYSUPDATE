@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 import GoogleLoginButton from '../../components/GoogleLoginButton';
+import { getErrorMessage } from '../../utils/errors';
 import toast from 'react-hot-toast';
 
 function RegisterPage() {
@@ -46,7 +47,7 @@ function RegisterPage() {
       toast.success('Account created successfully!');
       navigate('/', { replace: true });
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Registration failed');
+      toast.error(getErrorMessage(error, 'Registration failed'));
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +62,7 @@ function RegisterPage() {
       toast.success('Account created with Google!');
       navigate('/', { replace: true });
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Google sign-up failed');
+      toast.error(getErrorMessage(error, 'Google sign-up failed'));
     } finally {
       setIsLoading(false);
     }
