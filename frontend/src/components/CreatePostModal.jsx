@@ -10,6 +10,7 @@ import api from '../api/client';
 function CreatePostModal({ onClose, onCreated }) {
   const [body, setBody] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaKey, setMediaKey] = useState('');
   const [mediaKind, setMediaKind] = useState('image');
   const [posting, setPosting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -27,6 +28,7 @@ function CreatePostModal({ onClose, onCreated }) {
       });
       setMediaUrl(res.data.url);
       setMediaKind(res.data.type);
+      setMediaKey(res.data.key);
       toast.success('Media uploaded');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Upload failed');
@@ -42,9 +44,11 @@ function CreatePostModal({ onClose, onCreated }) {
     try {
       const res = await api.post('/posts', {
         kind: mediaUrl ? mediaKind : 'text',
-        body: body.trim()
+        body: body.trim(),
+        mediaUrl,
+        mediaKey,
+        mediaType: mediaKind
       });
-      // Attach media to the post via update if needed; for now the post is text.
       toast.success('Posted!');
       onCreated?.(res.data);
       onClose();

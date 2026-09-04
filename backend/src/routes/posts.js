@@ -24,7 +24,10 @@ router.post('/', async (req, res) => {
     channelId: Joi.number().integer(),
     isExclusive: Joi.boolean().default(false),
     unlockPrice: Joi.number().min(0).default(0),
-    scheduledAt: Joi.date().iso()
+    scheduledAt: Joi.date().iso(),
+    mediaUrl: Joi.string().uri().allow('').default(''),
+    mediaKey: Joi.string().allow('').default(''),
+    mediaType: Joi.string().valid('image', 'video', 'audio').allow('').default('')
   }).min(1);
 
   const { error, value } = schema.validate(req.body);

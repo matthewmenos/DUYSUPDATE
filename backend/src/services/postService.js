@@ -5,20 +5,34 @@ import { query, queryOne, queryAll, transaction } from '../config/database.js';
  * Create a post
  */
 export async function createPost(authorId, data) {
-  const { kind = 'text', body = '', title = '', channelId = null, isExclusive = false, unlockPrice = 0, scheduledAt = null } = data;
+  const { kind = 'text', body = '', title = '', channelId = null, isExclusive = false, unlockPrice = 0, scheduledAt = null,
+          mediaUrl = '', mediaKey = '', mediaType = '' } = data;
 
   // Sanitize content
   const cleanBody = sanitizeHtml(body);
   const cleanTitle = sanitizeHtml(title);
 
-  const result = await query(
-    `INSERT INTO posts (author_id, kind, body, title, channel_id, is_exclusive, unlock_price, scheduled_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id, author_id, kind, body, title, created_at`,
-    [authorId, kind, cleanBody, cleanTitle, channelId, isExclusive, unlockPrice, scheduledAt]
-  );
+  return transaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO posts (author_id, kind, body, title, channel_id, is_exclusive, unlock_price, scheduled_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, author_id, kind, body, title, created_at`,
+      [authorId, kind, cleanBody, cleanTitle, channelId, isExclusive, unlockPrice, scheduledAt]
+    );
+    const post = result.rows[0];
 
-  return result.rows[0];
+    // Attach media if provided
+    if (mediaUrl) {
+      const mediaKind = mediaType || (kind === 'video' ? 'video' : 'image');
+      await client.query(
+        `INSERT INTO media (post_id, owner_id, key, url, mime, kind)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [post.id, authorId, mediaKey, mediaUrl, '', mediaKind]
+      );
+    }
+
+    return post;
+  });
 }
 
 /**

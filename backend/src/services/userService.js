@@ -78,7 +78,7 @@ export async function getUserProfile(userId, currentUserId = null) {
  * Update user profile
  */
 export async function updateUserProfile(userId, updates) {
-  const allowedFields = ['display_name', 'bio', 'location', 'website', 'avatar_url', 'banner_url', 'theme', 'profile_slug'];
+  const allowedFields = ['display_name', 'bio', 'location', 'website', 'avatar_url', 'banner_url', 'theme', 'profile_slug', 'is_private', 'who_can_message', 'show_online_status'];
   const fields = [];
   const values = [];
   let paramCount = 1;
@@ -200,6 +200,80 @@ export async function getFollowSuggestions(userId, limit = 10) {
   );
 }
 
+// ============================================================================
+// Settings: password, privacy, notifications, blocked users, export, delete
+// ============================================================================
+
+export async function changePassword(userId, currentPassword, newPassword) {
+  const user = await queryOne('SELECT password_hash FROM users WHERE id = $1', [userId]);
+  if (!user) throw new Error('User not found');
+  const isValid = await comparePassword(currentPassword, user.password_hash);
+  if (!isValid) throw new Error('Current password is incorrect');
+  const newHash = await hashPassword(newPassword);
+  await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+}
+
+export async function updateNotificationPreferences(userId, prefs) {
+  await query('UPDATE users SET push_notifications = push_notifications || $1::jsonb WHERE id = $2', [JSON.stringify(prefs), userId]);
+}
+
+export async function getNotificationPreferences(userId) {
+  const row = await queryOne('SELECT push_notifications FROM users WHERE id = $1', [userId]);
+  const defaults = { likes: true, comments: true, follows: true, mentions: true, messages: true, reposts: true };
+  return { ...defaults, ...(row?.push_notifications || {}) };
+}
+
+export async function getBlockedUsers(userId) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url
+     FROM blocked_users b JOIN users u ON b.blocked_id = u.id
+     WHERE b.blocker_id = $1 ORDER BY b.created_at DESC`,
+    [userId]
+  );
+}
+
+export async function blockUser(blockerId, blockedId) {
+  await query(
+    'INSERT INTO blocked_users (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [blockerId, blockedId]
+  );
+  // Remove any follow relationship in both directions
+  await query('DELETE FROM follows WHERE (follower_id = $1 AND followee_id = $2) OR (follower_id = $2 AND followee_id = $1)', [blockerId, blockedId]);
+}
+
+export async function unblockUser(blockerId, blockedId) {
+  await query('DELETE FROM blocked_users WHERE blocker_id = $1 AND blocked_id = $2', [blockerId, blockedId]);
+}
+
+export async function requestDataExport(userId) {
+  const result = await query(
+    `INSERT INTO data_exports (user_id) VALUES ($1) RETURNING id, status, created_at`,
+    [userId]
+  );
+  return { message: 'Data export requested. You will be notified when it is ready.', ...result.rows[0] };
+}
+
+export async function deleteAccount(userId, password) {
+  const user = await queryOne('SELECT password_hash FROM users WHERE id = $1', [userId]);
+  if (!user) throw new Error('User not found');
+  const isValid = await comparePassword(password, user.password_hash);
+  if (!isValid) throw new Error('Password is incorrect');
+  // Soft-delete: anonymize the account rather than hard-destroying references
+  await query(
+    `UPDATE users SET
+      email = 'deleted_' || id || '@deleted.local',
+      username = 'deleted_' || id,
+      display_name = 'Deleted User',
+      password_hash = '',
+      bio = '', avatar_url = '', banner_url = '', is_banned = true,
+      updated_at = NOW()
+     WHERE id = $1`,
+    [userId]
+  );
+  await query('DELETE FROM follows WHERE follower_id = $1 OR followee_id = $1', [userId]);
+  await query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+}
+
 export default {
   getUserById,
   getUserByUsername,
@@ -210,5 +284,13 @@ export default {
   getUserFollowers,
   getUserFollowing,
   searchUsers,
-  getFollowSuggestions
+  getFollowSuggestions,
+  changePassword,
+  updateNotificationPreferences,
+  getNotificationPreferences,
+  getBlockedUsers,
+  blockUser,
+  unblockUser,
+  requestDataExport,
+  deleteAccount
 };

@@ -6,8 +6,175 @@ import * as notificationsService from '../services/notificationsService.js';
 const router = express.Router();
 
 /**
+ * PATCH /users/me/password
+ * Change password (requires current password).
+ */
+router.patch('/me/password', async (req, res) => {
+  const schema = Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: Joi.string().min(8).required()
+  });
+  const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    await userService.changePassword(req.userId, value.currentPassword, value.newPassword);
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /users/me/privacy
+ * Update privacy settings (private account, who can message, online status).
+ */
+router.patch('/me/privacy', async (req, res) => {
+  const schema = Joi.object({
+    isPrivate: Joi.boolean(),
+    whoCanMessage: Joi.string().valid('everyone', 'followers', 'nobody'),
+    showOnlineStatus: Joi.boolean()
+  }).min(1);
+  const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const map = { isPrivate: 'is_private', whoCanMessage: 'who_can_message', showOnlineStatus: 'show_online_status' };
+    const updates = {};
+    for (const [k, v] of Object.entries(value)) updates[map[k]] = v;
+    const updated = await userService.updateUserProfile(req.userId, updates);
+    const { password_hash, twofa_secret, ...safeUser } = updated;
+    res.json(safeUser);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /users/me/notifications
+ * Update per-type notification preferences.
+ */
+router.patch('/me/notifications', async (req, res) => {
+  const schema = Joi.object({
+    likes: Joi.boolean(),
+    comments: Joi.boolean(),
+    follows: Joi.boolean(),
+    mentions: Joi.boolean(),
+    messages: Joi.boolean(),
+    reposts: Joi.boolean()
+  }).min(1);
+  const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    await userService.updateNotificationPreferences(req.userId, value);
+    res.json({ message: 'Notification preferences updated' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /users/me/notifications/preferences
+ * Get current notification preferences.
+ */
+router.get('/me/notifications/preferences', async (req, res) => {
+  try {
+    const prefs = await userService.getNotificationPreferences(req.userId);
+    res.json(prefs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /users/me/blocked
+ * List users blocked by the current user.
+ */
+router.get('/me/blocked', async (req, res) => {
+  try {
+    const blocked = await userService.getBlockedUsers(req.userId);
+    res.json(blocked);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /users/:userId/block
+ * Block a user.
+ */
+router.post('/:userId/block', async (req, res) => {
+  try {
+    if (req.userId === parseInt(req.params.userId)) {
+      return res.status(400).json({ error: 'Cannot block yourself' });
+    }
+    await userService.blockUser(req.userId, req.params.userId);
+    res.json({ message: 'User blocked' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /users/:userId/block
+ * Unblock a user.
+ */
+router.delete('/:userId/block', async (req, res) => {
+  try {
+    await userService.unblockUser(req.userId, req.params.userId);
+    res.json({ message: 'User unblocked' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /users/me/export
+ * Request a data export.
+ */
+router.post('/me/export', async (req, res) => {
+  try {
+    const result = await userService.requestDataExport(req.userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /users/me
+ * Delete account and all associated data.
+ */
+router.delete('/me', async (req, res) => {
+  const schema = Joi.object({ password: Joi.string().required() });
+  const { error, value } = schema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    await userService.deleteAccount(req.userId, value.password);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
  * GET /users/me
- * Get current user profile
+ * Get full current user profile (for settings page).
+ */
+router.get('/me', async (req, res) => {
+  try {
+    const user = await userService.getUserById(req.userId);
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /users/:userId
+ * Get user profile
  */
 router.get('/me', async (req, res) => {
   try {
