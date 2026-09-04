@@ -10,4 +10,11 @@
  * `app.js` skips `app.listen()` under the VERCEL env (Vercel invokes the
  * handler directly instead of running an HTTP server).
  */
-export { default } from '../backend/api/index.js';
+import app from '../backend/api/index.js';
+
+// Breadcrumb for runtime logs: if requests fail with FUNCTION_INVOCATION_FAILED
+// and this line is absent from the logs, the crash happens during module init
+// (i.e. an import in the backend dependency graph throws at cold start).
+console.log('[duys] API function initialized');
+
+export default app;
