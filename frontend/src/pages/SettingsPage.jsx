@@ -30,6 +30,8 @@ function SettingsPage() {
 
       <PasswordSection />
 
+      <TwoFactorSection user={user} setUser={setUser} />
+
       <PrivacySection user={user} setUser={setUser} />
 
       <NotificationPreferencesSection user={user} />
@@ -483,6 +485,206 @@ function DeleteAccountSection() {
           <button onClick={handleDelete} disabled={busy} className="px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-sm font-semibold transition disabled:opacity-50 shrink-0">
 
             {busy ? '...' : 'Confirm'}
+
+          </button>
+
+        </div>
+
+      )}
+
+    </Section>
+
+  );
+
+}
+
+function TwoFactorSection({ user, setUser }) {
+
+  const [setup, setSetup] = useState(null); // { secret, qr } when in setup mode
+
+  const [code, setCode] = useState('');
+
+  const [busy, setBusy] = useState(false);
+
+  const twofaEnabled = !!user?.twofa_enabled;
+
+  const handleStartSetup = async () => {
+
+    setBusy(true);
+
+    try {
+
+      const data = await useAuthStore.getState().setupTwoFactor();
+
+      setSetup(data);
+
+    } catch (err) {
+
+      toast.error(getErrorMessage(err, 'Failed to start 2FA setup'));
+
+    } finally {
+
+      setBusy(false);
+
+    }
+
+  };
+
+  const handleEnable = async () => {
+
+    if (!setup || code.trim().length !== 6) {
+
+      toast.error('Enter the 6-digit code from your authenticator app');
+
+      return;
+
+    }
+
+    setBusy(true);
+
+    try {
+
+      await useAuthStore.getState().enableTwoFactor(setup.secret, code.trim());
+
+      setSetup(null);
+
+      setCode('');
+
+      setUser({ ...user, twofa_enabled: true });
+
+      toast.success('Two-factor authentication enabled');
+
+    } catch (err) {
+
+      toast.error(getErrorMessage(err, 'Failed to enable 2FA'));
+
+    } finally {
+
+      setBusy(false);
+
+    }
+
+  };
+
+  const handleDisable = async () => {
+
+    if (!window.confirm('Disable two-factor authentication?')) return;
+
+    setBusy(true);
+
+    try {
+
+      await useAuthStore.getState().disableTwoFactor();
+
+      setUser({ ...user, twofa_enabled: false });
+
+      toast.success('Two-factor authentication disabled');
+
+    } catch (err) {
+
+      toast.error(getErrorMessage(err, 'Failed to disable 2FA'));
+
+    } finally {
+
+      setBusy(false);
+
+    }
+
+  };
+
+  return (
+
+    <Section icon={<FiLock className="w-5 h-5" />} title="Two-factor authentication">
+
+      {twofaEnabled ? (
+
+        <div className="space-y-3">
+
+          <p className="flex items-center gap-2 text-sm">
+
+            <FiCheck className="w-4 h-4 text-emerald-400" />
+
+            <span className="text-emerald-400 font-semibold">Enabled</span>
+
+            <span className="text-gray-500">— an authenticator app code is required at login.</span>
+
+          </p>
+
+          <button onClick={handleDisable} disabled={busy}
+
+            className="px-4 py-2 rounded-full bg-red-600/20 text-red-400 border border-red-700 hover:bg-red-600/30 text-sm font-semibold transition disabled:opacity-50">
+
+            {busy ? '...' : 'Disable 2FA'}
+
+          </button>
+
+        </div>
+
+      ) : setup ? (
+
+        <div className="space-y-3">
+
+          <p className="text-sm text-gray-400 mb-2">
+
+            Scan this QR code with Google Authenticator, Authy, or any TOTP app.
+
+          </p>
+
+          <div className="flex items-start gap-4 flex-wrap">
+
+            <img src={setup.qr} alt="2FA QR code" className="w-44 h-44 rounded-lg bg-white p-2" />
+
+            <div className="space-y-2">
+
+              <p className="text-xs text-gray-500">Or enter this key manually:</p>
+
+              <code className="block bg-gray-900 rounded-lg px-3 py-2 text-xs break-all select-all">{setup.secret}</code>
+
+              <div className="flex items-center gap-2">
+
+                <input
+
+                  value={code}
+
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+
+                  placeholder="6-digit code"
+
+                  inputMode="numeric"
+
+                  className="w-36 bg-gray-900 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                />
+
+                <button onClick={handleEnable} disabled={busy}
+
+                  className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-sm font-semibold transition disabled:opacity-50">
+
+                  {busy ? '...' : 'Enable 2FA'}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <button onClick={() => setSetup(null)} className="text-sm text-gray-500 hover:text-gray-300">Cancel</button>
+
+        </div>
+
+      ) : (
+
+        <div className="space-y-2">
+
+          <p className="text-sm text-gray-500">Add an extra layer of security with an authenticator app (TOTP).</p>
+
+          <button onClick={handleStartSetup} disabled={busy}
+
+            className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-sm font-semibold transition disabled:opacity-50">
+
+            {busy ? '...' : 'Set up two-factor authentication'}
 
           </button>
 

@@ -27,23 +27,27 @@ const useAuthStore = create(
         }
       },
 
-      // Login
-      login: async (email, password) => {
+             login: async (email, password) => {
         const response = await api.post('/auth/login', { email, password });
-        const { user, accessToken, refreshToken } = response.data;
+        const { user, accessToken, refreshToken, twofaRequired, challengeToken } = response.data;
+        if (twofaRequired) {
+          // Do NOT persist tokens or set user until 2FA is verified.
+          return { twofaRequired, challengeToken };
+        }
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
-        set({ user, accessToken, refreshToken });
-        return user;
+        set({ user, accessToken, refreshToken, isLoading: false });
+        return { user, accessToken, refreshToken };
       },
 
-      // Register
-      register: async (email, username, password, displayName) => {
+             // Register
+      register: async (email, username, password, displayName, referralCode) => {
         const response = await api.post('/auth/register', {
           email,
           username,
           password,
-          displayName
+          displayName,
+          referralCode
         });
         const { user, accessToken, refreshToken } = response.data;
         localStorage.setItem('accessToken', accessToken);
@@ -53,13 +57,51 @@ const useAuthStore = create(
       },
 
       // Google login — exchanges a Google Identity Services ID token for DUYS tokens
-      loginWithGoogleCredential: async (credential) => {
-        const response = await api.post('/auth/google', { credential });
+      loginWithGoogleCredential: async (credential, referralCode) => {
+        const response = await api.post('/auth/google', { credential, referralCode });
+        const { user, accessToken, refreshToken, twofaRequired, challengeToken } = response.data;
+        if (twofaRequired) {
+          // Do NOT persist tokens or set user until 2FA is verified.
+          return { twofaRequired, challengeToken };
+        }
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        set({ user, accessToken, refreshToken, isLoading: false });
+        return { user, accessToken, refreshToken };
+      },
+
+      // 2FA Challenge — verify TOTP code from a pending login
+      verifyTwoFactor: async (challengeToken, code) => {
+        const response = await api.post('/auth/2fa/challenge', { challengeToken, code });
         const { user, accessToken, refreshToken } = response.data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
         set({ user, accessToken, refreshToken });
-        return user;
+        return { user, accessToken, refreshToken };
+      },
+
+      // 2FA Setup — generate a TOTP secret + QR code
+      setupTwoFactor: async () => {
+        const response = await api.post('/auth/2fa/setup');
+        return response.data;
+      },
+
+      // 2FA Enable — confirm a TOTP code to enable 2FA
+      enableTwoFactor: async (secret, code) => {
+        const response = await api.post('/auth/2fa/enable', { secret, code });
+        return response.data;
+      },
+
+      // 2FA Disable
+      disableTwoFactor: async () => {
+        const response = await api.post('/auth/2fa/disable');
+        return response.data;
+      },
+
+      // Fetch auth page config (Google enabled, announcement banner)
+      fetchAuthConfig: async () => {
+        const response = await api.get('/auth/config');
+        return response.data;
       },
 
       // Logout

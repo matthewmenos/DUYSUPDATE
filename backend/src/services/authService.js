@@ -1,8 +1,15 @@
 import bcryptjs from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { query, queryOne, transaction } from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../middleware/auth.js';
+import { authenticator } from 'otplib';
+import QRCode from 'qrcode';
 
 const SALT_ROUNDS = 10;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+
+// Re-export token generators so routes can use authService.generateAccessToken etc.
+export { generateAccessToken, generateRefreshToken };
 
 /**
  * Hash password
@@ -21,7 +28,7 @@ export async function comparePassword(password, hash) {
 /**
  * Register user with email/password
  */
-export async function registerUser(email, username, password, displayName) {
+export async function registerUser(email, username, password, displayName, referralCode) {
   const passwordHash = await hashPassword(password);
 
   return transaction(async (client) => {
@@ -36,12 +43,19 @@ export async function registerUser(email, username, password, displayName) {
       throw new Error(emailTaken ? 'An account with this email already exists' : 'That username is already taken');
     }
 
+    // If referral code provided, look up the referrer
+    let referredById = null;
+    if (referralCode) {
+      const referrer = await queryOne('SELECT id FROM users WHERE username = $1', [referralCode]);
+      if (referrer) referredById = referrer.id;
+    }
+
     // Create user
     const result = await client.query(
-      `INSERT INTO users (email, username, display_name, password_hash)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (email, username, display_name, password_hash, referred_by)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, username, display_name`,
-      [email, username, displayName, passwordHash]
+      [email, username, displayName, passwordHash, referredById]
     );
 
     const userRow = result.rows[0];
@@ -54,7 +68,8 @@ export async function registerUser(email, username, password, displayName) {
         email: userRow.email,
         username: userRow.username,
         display_name: userRow.display_name,
-        is_admin: false
+        is_admin: false,
+        twofa_enabled: false
       },
       accessToken,
       refreshToken
@@ -67,7 +82,7 @@ export async function registerUser(email, username, password, displayName) {
  */
 export async function loginWithEmail(email, password) {
   const user = await queryOne(
-    'SELECT id, email, username, password_hash, is_banned FROM users WHERE email = $1',
+    'SELECT id, email, username, password_hash, is_banned, is_admin, twofa_enabled, twofa_secret FROM users WHERE email = $1',
     [email]
   );
 
@@ -84,18 +99,38 @@ export async function loginWithEmail(email, password) {
     throw new Error('Invalid email or password');
   }
 
+  await query('UPDATE users SET last_seen = NOW() WHERE id = $1', [user.id]);
+
+  // If 2FA is enabled, return a challenge token instead of access/refresh
+  if (user.twofa_enabled && user.twofa_secret) {
+    const challengeToken = jwt.sign(
+      { userId: user.id, twofaChallenge: true },
+      JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_admin: user.is_admin,
+        twofa_enabled: true
+      },
+      twofaRequired: true,
+      challengeToken
+    };
+  }
+
   const accessToken = generateAccessToken(user.id, user.email);
   const refreshToken = generateRefreshToken(user.id);
-
-  // Update last_seen
-  await query('UPDATE users SET last_seen = NOW() WHERE id = $1', [user.id]);
 
   return {
     user: {
       id: user.id,
       email: user.email,
       username: user.username,
-      is_admin: user.is_admin
+      is_admin: user.is_admin,
+      twofa_enabled: false
     },
     accessToken,
     refreshToken
@@ -105,20 +140,20 @@ export async function loginWithEmail(email, password) {
 /**
  * Login with Google OAuth
  */
-export async function loginWithGoogle(googleId, email, displayName, avatarUrl) {
+export async function loginWithGoogle(googleId, email, displayName, avatarUrl, referredBy) {
   let user = await queryOne(
-    'SELECT id, email, username, is_banned, is_admin FROM users WHERE google_id = $1',
+    'SELECT id, email, username, is_banned, is_admin, twofa_enabled, twofa_secret FROM users WHERE google_id = $1',
     [googleId]
   );
 
   if (!user) {
-    // Create new user
+    // Create new user from Google
     const username = email.split('@')[0] + Math.random().toString(36).substring(7);
-    const result = await query(
-      `INSERT INTO users (google_id, email, username, display_name, avatar_url, is_admin)
-       VALUES ($1, $2, $3, $4, $5, false)
-       RETURNING id, email, username, is_admin`,
-      [googleId, email, username, displayName, avatarUrl]
+        const result = await query(
+      `INSERT INTO users (google_id, email, username, display_name, avatar_url, is_admin, referred_by)
+       VALUES ($1, $2, $3, $4, $5, false, $6)
+       RETURNING id, email, username, is_admin, twofa_enabled, twofa_secret`,
+      [googleId, email, username, displayName, avatarUrl, referredBy]
     );
     user = result.rows[0];
   }
@@ -127,22 +162,91 @@ export async function loginWithGoogle(googleId, email, displayName, avatarUrl) {
     throw new Error('This account has been banned');
   }
 
+  await query('UPDATE users SET last_seen = NOW() WHERE id = $1', [user.id]);
+
+  // If 2FA is enabled, return a challenge token instead of access/refresh
+  if (user.twofa_enabled && user.twofa_secret) {
+    const challengeToken = jwt.sign(
+      { userId: user.id, twofaChallenge: true },
+      JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_admin: user.is_admin,
+        twofa_enabled: true
+      },
+      twofaRequired: true,
+      challengeToken
+    };
+  }
+
   const accessToken = generateAccessToken(user.id, user.email);
   const refreshToken = generateRefreshToken(user.id);
-
-  // Update last_seen
-  await query('UPDATE users SET last_seen = NOW() WHERE id = $1', [user.id]);
 
   return {
     user: {
       id: user.id,
       email: user.email,
       username: user.username,
-      is_admin: user.is_admin
+      is_admin: user.is_admin,
+      twofa_enabled: false
     },
     accessToken,
     refreshToken
   };
+}
+
+/**
+ * Generate a TOTP secret for 2FA setup
+ */
+export function generateTotpSecret() {
+  return authenticator.generateSecret();
+}
+
+/**
+ * Generate a TOTP provisioning URI (for QR code)
+ */
+export function provisioningUri(secret, email) {
+  return authenticator.keyuri(email, 'DUYS', secret);
+}
+
+/**
+ * Generate a QR code data URI from a provisioning URI
+ */
+export async function qrDataUri(uri) {
+  return QRCode.toDataURL(uri);
+}
+
+/**
+ * Verify a TOTP code against a secret (window=1 for clock drift)
+ */
+export function verifyTotp(secret, code) {
+  if (!secret || !code) return false;
+  return authenticator.check(code, secret);
+}
+
+/**
+ * Enable 2FA for a user
+ */
+export async function enableTwoFactor(userId, secret) {
+  await query(
+    'UPDATE users SET twofa_secret = $1, twofa_enabled = true WHERE id = $2',
+    [secret, userId]
+  );
+}
+
+/**
+ * Disable 2FA for a user
+ */
+export async function disableTwoFactor(userId) {
+  await query(
+    'UPDATE users SET twofa_secret = \'\', twofa_enabled = false WHERE id = $1',
+    [userId]
+  );
 }
 
 export default {

@@ -84,3 +84,21 @@ function Icon({ name, size = 24, strokeWidth = 2, className }) {
 }
 
 export default Icon;
+
+/** Eye icon (password reveal toggle) — named export for auth screens. */
+export function IconEye({ size = 24, strokeWidth = 2, className }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {PATHS.eye}
+    </svg>
+  );
+}
+
+/** Eye-off icon (password hide toggle) — named export for auth screens. */
+export function IconEyeOff({ size = 24, strokeWidth = 2, className }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {PATHS['eye-off']}
+    </svg>
+  );
+}

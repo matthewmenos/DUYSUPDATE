@@ -11,6 +11,7 @@ import { authenticateJWT, requireAdmin } from './middleware/auth.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
+import auth2faRoutes from './routes/auth2fa.js';
 import userRoutes from './routes/users.js';
 import postRoutes from './routes/posts.js';
 import feedRoutes from './routes/feed.js';
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 
 // Public routes
 app.use('/auth', authRoutes);
+app.use('/auth', auth2faRoutes);
 app.use('/verify', verificationRoutes);
 
 // Protected routes

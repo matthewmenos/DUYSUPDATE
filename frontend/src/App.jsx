@@ -5,11 +5,13 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import useAuthStore from './stores/authStore';
 
 // Pages
 import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import TwoFactorChallenge from './pages/auth/TwoFactorChallenge';
+import LegalPage from './pages/auth/LegalPage';
 import FeedPage from './pages/FeedPage';
 import ExplorePage from './pages/ExplorePage';
 import StoriesPage from './pages/StoriesPage';
@@ -52,10 +54,15 @@ function App() {
       <ErrorBoundary>
         <Router>
         <ScrollToTop />
+        <AnnouncementBanner />
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
-          <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" />} />
+          {/* Register uses the unified AuthPage with the signup tab active */}
+          <Route path="/register" element={!user ? <Navigate to="/login?tab=signup" replace /> : <Navigate to="/" />} />
+          <Route path="/auth/2fa" element={!user ? <TwoFactorChallenge /> : <Navigate to="/" />} />
+          {/* Legal pages are public */}
+          <Route path="/legal/:page" element={<LegalPage />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

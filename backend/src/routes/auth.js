@@ -1,19 +1,23 @@
 import express from 'express';
 import Joi from 'joi';
+import jwt from 'jsonwebtoken';
 import * as authService from '../services/authService.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { queryOne, query } from '../config/database.js';
 
 const router = express.Router();
 
 /**
  * POST /auth/register
+ * Creates a new user. Optionally accepts a `referralCode` —
+ * if it matches an existing user, the new account is credited as a referral.
  */
 router.post('/register', async (req, res) => {
   const schema = Joi.object({
     email: Joi.string().email().required(),
     username: Joi.string().alphanum().min(3).max(30).required(),
     password: Joi.string().min(8).required(),
-    displayName: Joi.string().min(1).max(100).required()
+    displayName: Joi.string().min(1).max(100).required(),
+    referralCode: Joi.string().optional()
   });
 
   const { error, value } = schema.validate(req.body);
@@ -22,12 +26,15 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const { user, accessToken, refreshToken } = await authService.registerUser(
+        const result = await authService.registerUser(
       value.email,
       value.username,
       value.password,
-      value.displayName
+      value.displayName,
+      value.referralCode
     );
+
+    const { user, accessToken, refreshToken } = result;
 
     res.status(201).json({
       user,
@@ -54,16 +61,18 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const { user, accessToken, refreshToken } = await authService.loginWithEmail(
-      value.email,
-      value.password
-    );
+        const result = await authService.loginWithEmail(value.email, value.password);
 
-    res.json({
-      user,
-      accessToken,
-      refreshToken
-    });
+    if (result.twofaRequired) {
+      return res.json({
+        twofaRequired: true,
+        challengeToken: result.challengeToken,
+        user: result.user
+      });
+    }
+
+    const { user, accessToken, refreshToken } = result;
+    res.json({ user, accessToken, refreshToken });
   } catch (err) {
     if (err.code === 'ECONNREFUSED') {
       return res.status(503).json({ error: 'Database connection failed' });
@@ -81,8 +90,9 @@ router.post('/login', async (req, res) => {
  * email to be verified. Never trust raw googleId/email from the client.
  */
 router.post('/google', async (req, res) => {
-  const schema = Joi.object({
-    credential: Joi.string().required()
+    const schema = Joi.object({
+    credential: Joi.string().required(),
+    referralCode: Joi.string().optional()
   });
 
   const { error, value } = schema.validate(req.body);
@@ -109,16 +119,89 @@ router.post('/google', async (req, res) => {
       return res.status(401).json({ error: 'Google credential failed verification' });
     }
 
-    const { user, accessToken, refreshToken } = await authService.loginWithGoogle(
+        // If a referralCode is provided, look up the referrer
+    let referredBy = null;
+    if (value.referralCode) {
+      const referrer = await queryOne('SELECT id FROM users WHERE username = $1', [value.referralCode]);
+      if (referrer) referredBy = referrer.id;
+    }
+
+    const result = await authService.loginWithGoogle(
       info.sub,
       info.email,
       info.name || info.email.split('@')[0],
-      info.picture
+      info.picture,
+      referredBy
     );
 
+    if (result.twofaRequired) {
+      return res.json({
+        twofaRequired: true,
+        challengeToken: result.challengeToken,
+        user: result.user
+      });
+    }
+
+    const { user, accessToken, refreshToken } = result;
     res.json({ user, accessToken, refreshToken });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /auth/2fa/challenge
+ * Verify a TOTP code against a pending challenge token.
+ * The challengeToken comes from /auth/login when twofaRequired was returned.
+ */
+router.post('/2fa/challenge', async (req, res) => {
+  const schema = Joi.object({
+    challengeToken: Joi.string().required(),
+    code: Joi.string().length(6).required()
+  });
+
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  try {
+    const decoded = jwt.verify(value.challengeToken, process.env.JWT_SECRET || 'dev-secret-key');
+    if (!decoded.twofaChallenge || !decoded.userId) {
+      return res.status(401).json({ error: 'Invalid challenge token' });
+    }
+
+    const user = await queryOne(
+      'SELECT id, email, username, is_admin, twofa_secret FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+
+    if (!user || !user.twofa_secret) {
+      return res.status(401).json({ error: '2FA not configured for this user' });
+    }
+
+    if (!authService.verifyTotp(user.twofa_secret, value.code)) {
+      return res.status(401).json({ error: 'Invalid code. Try again.' });
+    }
+
+    const accessToken = authService.generateAccessToken(user.id, user.email);
+    const refreshToken = authService.generateRefreshToken(user.id);
+
+    await query('UPDATE users SET last_seen = NOW() WHERE id = $1', [user.id]);
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_admin: user.is_admin,
+        twofa_enabled: true
+      },
+      accessToken,
+      refreshToken
+    });
+  } catch (err) {
+    res.status(401).json({ error: 'Challenge expired or invalid' });
   }
 });
 
