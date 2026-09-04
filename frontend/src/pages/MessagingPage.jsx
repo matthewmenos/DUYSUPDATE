@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { FiSend, FiPaperclip, FiEdit2, FiTrash2, FiCheck, FiX, FiMessageCircle } from 'react-icons/fi';
+import { FiSend, FiPaperclip, FiEdit2, FiTrash2, FiCheck, FiX, FiMessageCircle, FiArrowLeft } from 'react-icons/fi';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
 
@@ -196,7 +196,7 @@ const openConversation = async (conv) => {
 return (
     <div className="h-full flex">
       {/* Conversations list */}
-      <aside className="w-80 border-r border-gray-700 flex flex-col bg-black">
+      <aside className={`w-full md:w-80 border-r border-gray-700 flex flex-col bg-black ${activeConv ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-xl font-bold">Messages</h2>
           <button
@@ -244,7 +244,7 @@ return (
       </aside>
 
       {/* Chat view */}
-      <main className="flex-1 flex flex-col bg-black">
+      <main className={`flex-1 flex flex-col bg-black ${activeConv ? 'flex' : 'hidden md:flex'}`}>
         {!activeConv ? (
           <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
@@ -256,6 +256,9 @@ return (
           <>
             {/* Chat header */}
             <div className="px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+              <button onClick={() => setActiveConv(null)} className="md:hidden w-9 h-9 rounded-full hover:bg-gray-900 flex items-center justify-center" aria-label="Back to conversations">
+                <FiArrowLeft className="w-5 h-5" />
+              </button>
               <img
                 src={activeConv.avatar_url || 'https://via.placeholder.com/40'}
                 alt={activeConv.display_name}

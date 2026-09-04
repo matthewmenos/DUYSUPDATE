@@ -81,3 +81,26 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--c-gray-600));
 }
+
+/* Mobile / responsive helpers */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-slide {
+  animation: drawer-slide-in 0.2s ease-out;
+}
+
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.overlay-fade {
+  animation: overlay-fade 0.15s ease-out;
+}
