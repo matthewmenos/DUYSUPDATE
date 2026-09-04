@@ -1,75 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { FiCheck, FiX, FiRefreshCw, FiArrowDown, FiArrowUp, FiRepeat } from 'react-icons/fi';
+import { formatDistanceToNow } from 'date-fns';
+import {
+  FiArrowDownLeft,
+  FiArrowUpRight,
+  FiRepeat,
+  FiRefreshCw,
+  FiCopy,
+  FiCheck,
+  FiX,
+  FiDollarSign,
+  FiZap,
+  FiWifi,
+  FiWifiOff,
+} from 'react-icons/fi';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { bsc } from 'viem/chains';
 import api from '../api/client';
 
-/**
- * WalletPage - connects to the wallet API.
- * Balances, transaction history, connect wallet (MetaMask/WalletConnect via Web3Modal),
- * deposit, withdraw, and swap (USDT↔DUYS).
- */
+const fmtUsd = (n) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n ?? 0));
+const fmtDuys = (n) =>
+  new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(Number(n ?? 0));
+const fmtNum = (n, digits = 2) =>
+  new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: digits }).format(Number(n ?? 0));
+
+const shortAddr = (addr) =>
+  addr && addr.length > 10 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr || '';
+
+const TX_META = {
+  deposit: { icon: FiArrowDownLeft, label: 'Deposit', tone: 'text-emerald-400 bg-emerald-500/10' },
+  withdrawal: { icon: FiArrowUpRight, label: 'Withdrawal', tone: 'text-rose-400 bg-rose-500/10' },
+  purchase: { icon: FiRepeat, label: 'Swap', tone: 'text-blue-400 bg-blue-500/10' },
+  reward: { icon: FiZap, label: 'Reward', tone: 'text-violet-400 bg-violet-500/10' },
+  default: { icon: FiRepeat, label: 'Transaction', tone: 'text-blue-400 bg-blue-500/10' },
+};
+
 function WalletPage() {
   const queryClient = useQueryClient();
-  const [activeModal, setActiveModal] = useState(null); // 'connect' | 'deposit' | 'withdraw' | 'swap'
+  const [activeModal, setActiveModal] = useState(null); // 'deposit' | 'withdraw' | 'swap'
   const [modalForm, setModalForm] = useState({});
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // wagmi hooks for connected account state
   const { address: wagmiAddress, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  // Web3Modal control (open() launches the connect UI: MetaMask / WalletConnect)
   const { open } = useWeb3Modal();
 
-  // Balance
   const { data: balance, isLoading: loadingBal } = useQuery({
     queryKey: ['wallet', 'balance'],
-    queryFn: async () => (await api.get('/wallet/balance')).data
+    queryFn: async () => (await api.get('/wallet/balance')).data,
+    refetchInterval: 20000,
   });
 
-  // Transactions
-  const { data: txData, isLoading: loadingTx } = useQuery({
+  const { data: txs = [], isLoading: loadingTx } = useQuery({
     queryKey: ['wallet', 'transactions'],
     queryFn: async () => {
-      const res = await api.get('/wallet/transactions', { params: { limit: 50 } });
+      const res = await api.get('/wallet/transactions', { params: { limit: 30 } });
       return res.data.transactions || [];
-    }
+    },
   });
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['wallet'] });
-  };
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['wallet'] });
 
-  // Detect the connected wallet address from wagmi, then register it on the backend
-  React.useEffect(() => {
+  // Sync the wagmi-connected wallet with the backend.
+  useEffect(() => {
     if (isConnected && wagmiAddress) {
-      api.post('/wallet/connect', {
-        walletAddress: wagmiAddress,
-        blockchain: 'bsc',
-        chainId: bsc.id,
-      }).then(() => {
-        toast.success('Wallet connected');
-        refresh();
-      }).catch((err) => {
-        toast.error(err.response?.data?.error || 'Failed to connect wallet');
-      });
+      api
+        .post('/wallet/connect', { walletAddress: wagmiAddress, blockchain: 'bsc' })
+        .then(() => {
+          toast.success('Wallet connected');
+          refresh();
+        })
+        .catch((err) => toast.error(err.response?.data?.error || 'Failed to connect wallet'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, wagmiAddress]);
 
-  // Connect wallet via Web3Modal (MetaMask + WalletConnect)
-  // Connect wallet via Web3Modal (MetaMask + WalletConnect)
-// The w3m-button component handles the connection UI and flow.
-// When the user approves, wagmi fires the connection and the useEffect above
-//   syncs the address to the backend.
+  const handleDisconnect = () => {
+    disconnect();
+    toast('Wallet disconnected');
+  };
 
-// Disconnect wallet
-const handleDisconnect = () => {
-  disconnect();
-  toast('Wallet disconnected');
-};
+  const copyAddress = () => {
+    const addr = balance?.walletAddress || wagmiAddress;
+    if (!addr) return;
+    navigator.clipboard?.writeText(addr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleDeposit = async (e) => {
     e.preventDefault();
@@ -78,7 +98,6 @@ const handleDisconnect = () => {
     setBusy(true);
     try {
       const res = await api.post('/wallet/deposit', { amountUsd, paymentMethod: 'crypto' });
-      // For demonstration, immediately settle the deposit.
       await api.post('/wallet/deposit/confirm', { transactionId: res.data.transactionId });
       toast.success('Deposit confirmed');
       setActiveModal(null);
@@ -96,10 +115,10 @@ const handleDisconnect = () => {
     const amount = Number(modalForm.amount);
     const addr = modalForm.walletAddress;
     if (!amount || amount <= 0) return toast.error('Enter a valid amount');
-    if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) return toast.error('Invalid BSC address (0x...)');
+    if (!addr || !/^0x[a-fA-F0-9]{40}$/.test(addr)) return toast.error('Invalid BSC address (0x…)');
     setBusy(true);
     try {
-      const res = await api.post('/wallet/withdraw', { amount, walletAddress: addr });
+      await api.post('/wallet/withdraw', { amount, walletAddress: addr });
       toast.success('Withdrawal submitted for processing');
       setActiveModal(null);
       setModalForm({});
@@ -132,128 +151,212 @@ const handleDisconnect = () => {
     }
   };
 
-  const txStatus = (t) => (t.metadata && t.metadata.status) || 'completed';
-  const fmtTime = (iso) => new Date(iso).toLocaleString();
+  const duysPrice = Number(balance?.duysPriceUsd ?? 0.05);
+  const totalUsd = Number(balance?.usd ?? 0) + Number(balance?.duys ?? 0) * duysPrice;
+  const connectedAddr = balance?.walletAddress || wagmiAddress || null;
+  const linkAddr = (walletAddress) => `https://bscscan.com/address/${walletAddress}`;
 
   return (
-    <div className="max-w-4xl mx-auto border-l border-r border-gray-700 p-6 md:p-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-4xl px-4 py-5 md:px-8 md:py-7">
+      {/* Header */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-bold mb-1">Wallet</h2>
-          <p className="text-gray-400">Manage balances, rewards, and wallet activity.</p>
+          <h2 className="text-2xl font-bold md:text-3xl">Wallet</h2>
+          <p className="mt-0.5 text-sm text-gray-400">Manage your DUYS balance and tokens</p>
         </div>
-        <button onClick={refresh} className="text-gray-400 hover:text-white" aria-label="Refresh">
-          <FiRefreshCw />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs font-medium text-gray-300">
+            <span className="text-blue-400">1 DUYS</span> ≈ {fmtUsd(duysPrice)}
+          </span>
+          <button
+            onClick={refresh}
+            className="rounded-full p-2 text-gray-400 transition hover:bg-gray-900 hover:text-white"
+            aria-label="Refresh"
+          >
+            <FiRefreshCw className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Balances */}
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
-        <div className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
-          <p className="text-sm text-gray-400">USD balance</p>
-          <p className="mt-3 text-2xl font-bold">
-            {loadingBal ? '…' : `$${(balance?.usd ?? 0).toFixed(2)}`}
-          </p>
-          <p className="mt-2 text-sm text-gray-500">USDT-equivalent</p>
-        </div>
-        <div className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
-          <p className="text-sm text-gray-400">DUYS tokens</p>
-          <p className="mt-3 text-2xl font-bold">
-            {loadingBal ? '…' : `${Number(balance?.duys ?? 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} DUYS`}
-          </p>
-          <p className="mt-2 text-sm text-gray-500">
-            {balance ? `1 DUYS ≈ $${(balance.duysPriceUsd || 0.05).toFixed(4)}` : ' '} · BSC network
-          </p>
-        </div>
-        <div className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
-          <p className="text-sm text-gray-400">Wallet status</p>
-          {balance?.walletAddress ? (
-            <div className="mt-3 flex items-center gap-2 text-green-400 text-sm break-all">
-              <FiCheck /> {balance.walletAddress.slice(0, 10)}…{balance.walletAddress.slice(-6)}
-            </div>
-          ) : (
-            <div className="mt-3 text-gray-500 text-sm">Not connected</div>
-          )}
-          {isConnected && wagmiAddress ? (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold text-white">
-                <span>Connected via Web3Modal</span>
-                <button onClick={handleDisconnect} className="text-xs underline">Disconnect</button>
-              </div>
+      {/* Hero balance card */}
+      <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/30 via-blue-900/20 to-black p-6 shadow-xl shadow-blue-900/20">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-sky-400/10 blur-3xl" />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm text-gray-300">Total balance</p>
+            <p className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">
+              {loadingBal ? '…' : fmtUsd(totalUsd)}
+            </p>
+          </div>
+          {connectedAddr ? (
+            <div className="flex items-center gap-2">
+              <a
+                href={linkAddr(connectedAddr)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
+              >
+                <FiWifi className="h-3.5 w-3.5" />
+                {shortAddr(connectedAddr)}
+              </a>
+              <button
+                onClick={copyAddress}
+                className="rounded-full border border-blue-400/30 bg-blue-500/10 p-2 text-blue-300 transition hover:bg-blue-500/20"
+                aria-label="Copy address"
+              >
+                {copied ? <FiCheck className="h-3.5 w-3.5" /> : <FiCopy className="h-3.5 w-3.5" />}
+              </button>
             </div>
           ) : (
             <button
-              onClick={() => open()}
-              className="mt-4 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              onClick={open}
+              className="flex items-center gap-1.5 rounded-full border border-gray-500/40 bg-black/30 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-blue-400/60"
             >
-              Connect Wallet
+              <FiWifiOff className="h-3.5 w-3.5" />
+              Connect wallet
             </button>
           )}
         </div>
-      </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <button onClick={() => setActiveModal('deposit')} className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">
-          <FiArrowDown /> Deposit
-        </button>
-                <button onClick={() => setActiveModal('withdraw')} className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white">
-          <FiArrowUp /> Withdraw
-        </button>
-        <button onClick={() => setActiveModal('swap')} className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white">
-          <FiRepeat /> Swap
-        </button>
-      </div>
-
-      {/* Transactions */}
-      <div className="rounded-2xl border border-gray-700 bg-gray-900 p-5">
-        <h3 className="text-xl font-bold mb-4">Recent activity</h3>
-        {loadingTx ? (
-          <p className="text-gray-500">Loading…</p>
-        ) : txData.length === 0 ? (
-          <p className="text-gray-500">No transactions yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {txData.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between rounded-xl border border-gray-700 bg-black p-4">
-                <div>
-                  <p className="font-semibold capitalize">{tx.kind}</p>
-                  <p className="text-sm text-gray-500">{tx.description}</p>
-                  <p className="text-xs text-gray-600">{fmtTime(tx.created_at)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-white">
-                    {tx.kind === 'withdrawal' ? '-' : '+'}${Number(tx.amount).toFixed(2)}
-                  </p>
-                  <p className={`text-xs capitalize ${txStatus(tx) === 'completed' ? 'text-green-400' : 'text-blue-400'}`}>
-                    {txStatus(tx).replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-            ))}
+        <div className="relative mt-6 grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-sky-400 text-sm font-extrabold text-white shadow-lg shadow-blue-500/30">
+              D
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400">DUYS</p>
+              <p className="truncate text-lg font-bold">{loadingBal ? '…' : fmtDuys(balance?.duys)} DUYS</p>
+              <p className="text-xs text-gray-300">≈ {fmtUsd(Number(balance?.duys ?? 0) * duysPrice)}</p>
+            </div>
           </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <FiDollarSign className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400">USDT / USD</p>
+              <p className="truncate text-lg font-bold">{loadingBal ? '…' : fmtUsd(balance?.usd)}</p>
+              <p className="text-xs text-gray-300">Stablecoin</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="mt-5 grid grid-cols-4 gap-3">
+        <ActionButton icon={FiArrowDownLeft} label="Deposit" tone="bg-emerald-500/10 text-emerald-400" onClick={() => setActiveModal('deposit')} />
+        <ActionButton icon={FiArrowUpRight} label="Withdraw" tone="bg-rose-500/10 text-rose-400" onClick={() => setActiveModal('withdraw')} />
+        <ActionButton icon={FiRepeat} label="Swap" tone="bg-blue-500/10 text-blue-400" onClick={() => setActiveModal('swap')} />
+        {isConnected || connectedAddr ? (
+          <ActionButton icon={FiWifiOff} label="Disconnect" tone="bg-gray-800 text-gray-400" onClick={handleDisconnect} />
+        ) : (
+          <ActionButton icon={FiWifi} label="Connect" tone="bg-blue-500/10 text-blue-400" onClick={open} />
         )}
       </div>
-{/* Modal */}
+
+      {/* Assets */}
+      <section className="mt-7">
+        <h3 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-gray-400">Assets</h3>
+        <div className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/60">
+          <AssetRow
+            icon={
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-sky-400 text-sm font-extrabold text-white shadow-sm shadow-blue-500/30">
+                D
+              </div>
+            }
+            name="DUYS"
+            sub={`DUYS token · ≈ ${fmtUsd(duysPrice)}`}
+            amount={loadingBal ? '…' : `${fmtDuys(balance?.duys)} DUYS`}
+            value={loadingBal ? '…' : fmtUsd(Number(balance?.duys ?? 0) * duysPrice)}
+          />
+          <div className="h-px bg-gray-700/70" />
+          <AssetRow
+            icon={
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                <FiDollarSign className="h-5 w-5" />
+              </div>
+            }
+            name="USDT / USD"
+            sub="Stablecoin · 1:1 USD"
+            amount={loadingBal ? '…' : fmtUsd(balance?.usd)}
+            value={loadingBal ? '…' : fmtUsd(balance?.usd)}
+          />
+        </div>
+      </section>
+
+      {/* Activity */}
+      <section className="mt-7 mb-10">
+        <h3 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-gray-400">Activity</h3>
+        {loadingTx ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-800/70" />
+            ))}
+          </div>
+        ) : txs.length === 0 ? (
+          <div className="rounded-2xl border border-gray-700 bg-gray-900/60 p-10 text-center">
+            <FiRepeat className="mx-auto h-8 w-8 text-gray-600" />
+            <p className="mt-3 text-sm font-medium text-gray-300">No activity yet</p>
+            <p className="mt-1 text-xs text-gray-500">Deposit funds or swap DUYS to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/60">
+            {txs.map((t) => {
+              const meta = TX_META[t.kind] || TX_META.default;
+              const Icon = meta.icon;
+              const positive = t.kind === 'deposit';
+              const sign = positive ? '+' : '';
+              return (
+                <div key={t.id} className="flex items-center gap-3 border-b border-gray-700/60 px-4 py-3.5 last:border-0">
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${meta.tone}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{meta.label}</p>
+                    <p className="truncate text-xs text-gray-400">{t.description || 'Transaction'}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={`text-sm font-bold ${positive ? 'text-emerald-400' : 'text-gray-100'}`}>
+                      {sign}
+                      {fmtNum(Number(t.amount))}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {t.created_at ? formatDistanceToNow(new Date(t.created_at), { addSuffix: true }) : ''}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Modals */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold capitalize">{activeModal} wallet</h3>
-              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-white">
-                <FiX />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setActiveModal(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-gray-700 bg-gray-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="text-lg font-bold">
+                {activeModal === 'deposit' && 'Deposit'}
+                {activeModal === 'withdraw' && 'Withdraw'}
+                {activeModal === 'swap' && 'Swap assets'}
+              </h4>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-800 hover:text-white"
+                aria-label="Close"
+              >
+                <FiX className="h-5 w-5" />
               </button>
             </div>
-
-            {activeModal === 'connect' && (
-              <>
-                <p className="text-sm text-gray-400 mb-4">Connect your Web3 wallet to receive and send funds on the BNB Smart Chain.</p>
-                <div className="flex justify-center py-4">
-                  <w3m-button size="md" />
-                </div>
-                <p className="text-xs text-gray-500 mt-3 text-center">Supported: MetaMask, WalletConnect, and more.</p>
-              </>
-            )}
 
             {activeModal === 'deposit' && (
               <form onSubmit={handleDeposit} className="space-y-3">
@@ -261,13 +364,18 @@ const handleDisconnect = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  autoFocus
                   value={modalForm.amountUsd || ''}
                   onChange={(e) => setModalForm({ ...modalForm, amountUsd: e.target.value })}
                   placeholder="Amount (USD)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl bg-black px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-gray-500">Verified tokens accepted: DUYS, USDT, BNB and major tokens.</p>
-                <button type="submit" disabled={busy} className="w-full rounded-full bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <p className="text-xs text-gray-500">Funds are credited instantly as USDT-equivalent.</p>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+                >
                   {busy ? 'Processing…' : 'Deposit'}
                 </button>
               </form>
@@ -279,19 +387,24 @@ const handleDisconnect = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  autoFocus
                   value={modalForm.amount || ''}
                   onChange={(e) => setModalForm({ ...modalForm, amount: e.target.value })}
                   placeholder="Amount (USD)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl bg-black px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   value={modalForm.walletAddress || ''}
                   onChange={(e) => setModalForm({ ...modalForm, walletAddress: e.target.value })}
                   placeholder="BSC address (0x…)"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl bg-black px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500">Withdrawals are queued for review before processing.</p>
-                <button type="submit" disabled={busy} className="w-full rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+                >
                   {busy ? 'Submitting…' : 'Withdraw'}
                 </button>
               </form>
@@ -303,7 +416,7 @@ const handleDisconnect = () => {
                   <select
                     value={modalForm.fromAsset || 'USDT'}
                     onChange={(e) => setModalForm({ ...modalForm, fromAsset: e.target.value })}
-                    className="w-1/2 bg-black rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-1/2 rounded-xl bg-black px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option>USDT</option>
                     <option>DUYS</option>
@@ -311,7 +424,7 @@ const handleDisconnect = () => {
                   <select
                     value={modalForm.toAsset || 'DUYS'}
                     onChange={(e) => setModalForm({ ...modalForm, toAsset: e.target.value })}
-                    className="w-1/2 bg-black rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-1/2 rounded-xl bg-black px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option>DUYS</option>
                     <option>USDT</option>
@@ -324,10 +437,14 @@ const handleDisconnect = () => {
                   value={modalForm.amount || ''}
                   onChange={(e) => setModalForm({ ...modalForm, amount: e.target.value })}
                   placeholder="Amount"
-                  className="w-full bg-black rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl bg-black px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-gray-500">Price feed: 1 DUYS ≈ ${(balance?.duysPriceUsd || 0.05).toFixed(4)}. Powered by on-chain oracle.</p>
-                <button type="submit" disabled={busy} className="w-full rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <p className="text-xs text-gray-500">Price feed: 1 DUYS ≈ {fmtUsd(duysPrice)}</p>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+                >
                   {busy ? 'Swapping…' : 'Swap'}
                 </button>
               </form>
@@ -335,6 +452,38 @@ const handleDisconnect = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---- Small presentational pieces ---- */
+
+function ActionButton({ icon: Icon, label, tone, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-2 rounded-2xl border border-gray-700 bg-gray-900/60 px-2 py-4 transition hover:border-blue-500/50 hover:bg-gray-800 active:scale-95"
+    >
+      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${tone}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="text-xs font-medium text-gray-300">{label}</span>
+    </button>
+  );
+}
+
+function AssetRow({ icon, name, sub, amount, value }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3.5">
+      {icon}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{name}</p>
+        <p className="truncate text-xs text-gray-400">{sub}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-bold">{amount}</p>
+        <p className="text-xs text-gray-400">{value}</p>
+      </div>
     </div>
   );
 }
