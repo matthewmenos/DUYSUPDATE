@@ -117,7 +117,7 @@ router.get('/hashtag/:tag', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const beforeId = req.query.beforeId ? parseInt(req.query.beforeId) : null;
     
-    const posts = await feedService.getHashtagFeed(req.params.tag, limit, beforeId);
+    const posts = await feedService.getHashtagFeed(req.params.tag, limit, beforeId, req.userId);
     res.json({ posts });
   } catch (err) {
     res.status(500).json({ error: err.message });

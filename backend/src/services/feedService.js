@@ -1,4 +1,5 @@
 import { queryAll, queryOne } from '../config/database.js';
+import { hydratePosts } from './postService.js';
 
 /**
  * Get personalized feed (for_you)
@@ -12,7 +13,7 @@ export async function getForYouFeed(userId, limit = 20, beforeId = null) {
     FROM posts p
     JOIN users u ON p.author_id = u.id
     WHERE p.deleted_at IS NULL
-    AND p.scheduled_at IS NULL
+    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
     AND u.is_banned = false
     ${beforeId ? 'AND p.id < $2' : ''}
     ORDER BY p.created_at DESC
@@ -20,7 +21,7 @@ export async function getForYouFeed(userId, limit = 20, beforeId = null) {
   `;
 
   const params = beforeId ? [userId, beforeId, limit] : [userId, limit];
-  return queryAll(query, params);
+  return hydratePosts(await queryAll(query, params), userId);
 }
 
 /**
@@ -36,7 +37,7 @@ export async function getFollowingFeed(userId, limit = 20, beforeId = null) {
     JOIN follows f ON p.author_id = f.followee_id
     WHERE f.follower_id = $1
     AND p.deleted_at IS NULL
-    AND p.scheduled_at IS NULL
+    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
     AND u.is_banned = false
     ${beforeId ? 'AND p.id < $2' : ''}
     ORDER BY p.created_at DESC
@@ -44,7 +45,7 @@ export async function getFollowingFeed(userId, limit = 20, beforeId = null) {
   `;
 
   const params = beforeId ? [userId, beforeId, limit] : [userId, limit];
-  return queryAll(query, params);
+  return hydratePosts(await queryAll(query, params), userId);
 }
 
 /**
@@ -59,7 +60,7 @@ export async function getChannelFeed(channelId, limit = 20, beforeId = null) {
     JOIN users u ON p.author_id = u.id
     WHERE p.channel_id = $1
     AND p.deleted_at IS NULL
-    AND p.scheduled_at IS NULL
+    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
     AND u.is_banned = false
     ${beforeId ? 'AND p.id < $2' : ''}
     ORDER BY p.created_at DESC
@@ -67,14 +68,14 @@ export async function getChannelFeed(channelId, limit = 20, beforeId = null) {
   `;
 
   const params = beforeId ? [channelId, beforeId, limit] : [channelId, limit];
-  return queryAll(query, params);
+  return hydratePosts(await queryAll(query, params));
 }
 
 /**
  * Get trending posts
  */
 export async function getTrendingPosts(limit = 20) {
-  return queryAll(
+  return hydratePosts(await queryAll(
     `SELECT p.*, u.username, u.display_name, u.avatar_url, u.verified_badge,
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS like_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comment_count,
@@ -82,18 +83,19 @@ export async function getTrendingPosts(limit = 20) {
      FROM posts p
      JOIN users u ON p.author_id = u.id
      WHERE p.deleted_at IS NULL
+     AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
      AND p.created_at > NOW() - INTERVAL '7 days'
      AND u.is_banned = false
      ORDER BY engagement_score DESC
      LIMIT $1`,
     [limit]
-  );
+  ));
 }
 
 /**
  * Get feed by hashtag
  */
-export async function getHashtagFeed(tag, limit = 20, beforeId = null) {
+export async function getHashtagFeed(tag, limit = 20, beforeId = null, viewerId = null) {
   let query = `
     SELECT p.*, u.username, u.display_name, u.avatar_url, u.verified_badge,
            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS like_count,
@@ -103,6 +105,7 @@ export async function getHashtagFeed(tag, limit = 20, beforeId = null) {
     JOIN post_hashtags ph ON p.id = ph.post_id
     WHERE ph.tag = $1
     AND p.deleted_at IS NULL
+    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
     AND u.is_banned = false
     ${beforeId ? 'AND p.id < $2' : ''}
     ORDER BY p.created_at DESC
@@ -110,7 +113,7 @@ export async function getHashtagFeed(tag, limit = 20, beforeId = null) {
   `;
 
   const params = beforeId ? [tag, beforeId, limit] : [tag, limit];
-  return queryAll(query, params);
+  return hydratePosts(await queryAll(query, params), viewerId);
 }
 
 /**
@@ -125,15 +128,15 @@ export async function getUserFeed(userId, viewerId = null, limit = 20, beforeId 
     JOIN users u ON p.author_id = u.id
     WHERE p.author_id = $1
     AND p.deleted_at IS NULL
-    AND p.scheduled_at IS NULL
+    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
     AND u.is_banned = false
     ${beforeId ? 'AND p.id < $2' : ''}
-    ORDER BY p.created_at DESC
+    ORDER BY p.is_pinned DESC, p.created_at DESC
     LIMIT $${beforeId ? '3' : '2'}
   `;
 
   const params = beforeId ? [userId, beforeId, limit] : [userId, limit];
-  return queryAll(query, params);
+  return hydratePosts(await queryAll(query, params), viewerId);
 }
 
 /**

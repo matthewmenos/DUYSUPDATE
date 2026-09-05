@@ -464,3 +464,65 @@ html.light {
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-block { width: 100%; }
+/* ───── Phase 1: Posts depth (polls, articles, link previews, linkify) ───── */
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* --links (auto-linked urls/mentions/hashtags) -- */
+a.link-ext,
+a.link-mention,
+a.link-tag {
+  color: rgb(var(--c-blue));
+  text-decoration: none;
+  font-weight: 500;
+}
+a.link-ext:hover,
+a.link-mention:hover,
+a.link-tag:hover {
+  text-decoration: underline;
+}
+
+/* Article rich body (dangerouslySetInnerHTML) */
+.post-article-rich {
+  color: rgb(var(--c-text));
+  line-height: 1.65;
+  word-break: break-word;
+}
+.post-article-rich h1, .post-article-rich h2, .post-article-rich h3 {
+  font-weight: 800;
+  margin: 1.1em 0 0.45em;
+  line-height: 1.3;
+}
+.post-article-rich h1 { font-size: 1.5rem; }
+.post-article-rich h2 { font-size: 1.3rem; }
+.post-article-rich h3 { font-size: 1.12rem; }
+.post-article-rich p { margin: 0.7em 0; }
+.post-article-rich img { max-width: 100%; border-radius: var(--radius-md, 14px); margin: 0.9em 0; }
+.post-article-rich a { color: rgb(var(--c-blue)); text-decoration: underline; }
+.post-article-rich blockquote {
+  border-left: 3px solid rgb(var(--c-blue));
+  padding-left: 14px;
+  margin: 0.9em 0;
+  color: rgb(var(--c-gray-400));
+}
+.post-article-rich iframe {
+  max-width: 100%;
+  border-radius: 14px;
+  margin: 0.9em 0;
+  border: 1px solid rgb(var(--c-gray-700));
+}
+
+/* Poll widget (fallback styling handled inline via Tailwind) */
+.poll-option-mine {
+  border-color: rgb(var(--c-blue));
+}
+
+/* Post card article preview clamp */
+.post-article-body {
+  max-height: 220px;
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent);
+  mask-image: linear-gradient(to bottom, black 60%, transparent);
+}
