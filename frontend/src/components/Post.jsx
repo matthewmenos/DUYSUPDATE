@@ -8,6 +8,8 @@ import Icon from './icons';
 import PollWidget from './PollWidget';
 import LinkPreviewCard from './LinkPreviewCard';
 import ReportModal from './ReportModal';
+import BoostModal from './BoostModal';
+import TipModal from './TipModal';
 import { renderLinkified } from '../utils/linkify';
 
 const REPORT_REASONS = ['spam', 'harassment', 'hate', 'misinformation', 'violence', 'other'];
@@ -33,6 +35,8 @@ function Post({ post: initialPost, onLikeChange }) {
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showBoost, setShowBoost] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
   const isOwn = !!currentUser && post.author_id === currentUser.id;
 
@@ -192,6 +196,15 @@ const badgeClass = (b) =>
                         {post.is_pinned ? 'Unpin from profile' : 'Pin to profile'}
                       </button>
                     )}
+                    {isOwn && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowBoost(true); setMenuOpen(false); }}
+                        className="w-full px-4 py-2.5 text-sm text-left text-gray-200 hover:bg-gray-800 flex items-center gap-2"
+                      >
+                        <Icon name="boost" size={15} />
+                        Boost post
+                      </button>
+                    )}
                     {!isOwn && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowReport(true); setMenuOpen(false); }}
@@ -327,6 +340,14 @@ const badgeClass = (b) =>
               <span>{post.view_count || ''}</span>
             </span>
 
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowTip(true); }}
+              className="flex items-center space-x-2 hover:text-yellow-400 group"
+              title={`Tip ${post.display_name || post.username}`}
+            >
+              <Icon name="gift" size={18} />
+            </button>
+
             <button onClick={handleShare} className="flex items-center space-x-2 hover:text-blue-400 group">
               <Icon name="share-out" size={18} />
             </button>
@@ -340,6 +361,21 @@ const badgeClass = (b) =>
           entityType="post"
           entityId={post.id}
           onClose={() => setShowReport(false)}
+        />
+      )}
+
+      {/* Boost modal */}
+      {showBoost && (
+        <BoostModal post={post} onClose={() => setShowBoost(false)} />
+      )}
+
+      {/* Tip modal */}
+      {showTip && (
+        <TipModal
+          toUserId={post.author_id}
+          toName={post.display_name || post.username}
+          postId={post.id}
+          onClose={() => setShowTip(false)}
         />
       )}
     </article>

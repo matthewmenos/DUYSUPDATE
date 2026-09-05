@@ -166,4 +166,143 @@ router.post('/connect', async (req, res) => {
   }
 });
 
+/**
+ * POST /wallet/tip
+ * Send a tip to another user (points or DUYS).
+ */
+router.post('/tip', async (req, res) => {
+  const schema = Joi.object({
+    toUserId: Joi.number().integer().positive().required(),
+    amount: Joi.number().positive().required(),
+    message: Joi.string().max(280).allow('').default(''),
+    useDuys: Joi.boolean().default(false)
+  });
+  const { error, value } = schema.validate(req.body || {});
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const { sendTip } = await import('../services/tipService.js');
+    const result = await sendTip(req.userId, value.toUserId, value.amount, value.message, value.useDuys);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /wallet/tips
+ * Recent tips sent/received.
+ */
+router.get('/tips', async (req, res) => {
+  try {
+    const { getTipHistory } = await import('../services/tipService.js');
+    const history = await getTipHistory(req.userId, 50);
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /wallet/claims
+ * Token claim stats.
+ */
+router.get('/claims', async (req, res) => {
+  try {
+    const { claimStats } = await import('../services/swapService.js');
+    const stats = await claimStats(req.userId);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /wallet/shop/:username
+ * Creator shop page for a seller.
+ */
+router.get('/shop/:username', async (req, res) => {
+  try {
+    const { getSellerShop } = await import('../services/shopService.js');
+    const result = await getSellerShop(req.params.username, req.userId);
+    if (!result) return res.status(404).json({ error: 'Seller not found' });
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /wallet/shop/listings
+ * Create a shop listing (verified sellers only).
+ */
+router.post('/shop/listings', async (req, res) => {
+  const schema = Joi.object({
+    title: Joi.string().max(128).required(),
+    description: Joi.string().max(1000).allow('').default(''),
+    priceDuys: Joi.number().positive().default(0),
+    fileKey: Joi.string().required(),
+    fileUrl: Joi.string().required(),
+    fileName: Joi.string().max(255).allow('').default('')
+  });
+  const { error, value } = schema.validate(req.body || {});
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const { createListing } = await import('../services/shopService.js');
+    const result = await createListing(req.userId, value);
+    res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /wallet/shop/listings/:id/toggle
+ * Toggle a listing active/inactive.
+ */
+router.post('/shop/listings/:id/toggle', async (req, res) => {
+  try {
+    const { toggleListing } = await import('../services/shopService.js');
+    const result = await toggleListing(req.params.id, req.userId);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /wallet/shop/listings/:id
+ * Delete a listing.
+ */
+router.delete('/shop/listings/:id', async (req, res) => {
+  try {
+    const { deleteListing } = await import('../services/shopService.js');
+    const result = await deleteListing(req.params.id, req.userId);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /wallet/shop/purchases/:listingId
+ * Buy a listing with in-app DUYS.
+ */
+router.post('/shop/purchases/:listingId', async (req, res) => {
+  try {
+    const { buyListing } = await import('../services/shopService.js');
+    const result = await buyListing(req.params.listingId, req.userId);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

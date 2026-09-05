@@ -25,6 +25,10 @@ import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import PostDetailPage from './pages/PostDetailPage';
 import SettingsPage from './pages/SettingsPage';
+import EarnPage from './pages/EarnPage';
+import ReferralPage from './pages/ReferralPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ShopPage from './pages/ShopPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 const queryClient = new QueryClient();
@@ -78,6 +82,10 @@ function App() {
             <Route path="/channels/:channelId" element={<ChannelDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/earn" element={<EarnPage />} />
+            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/shop/:username" element={<ShopPage />} />
             <Route path="/admin" element={user?.is_admin ? <AdminPage /> : <Navigate to="/" />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

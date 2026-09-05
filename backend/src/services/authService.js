@@ -4,6 +4,8 @@ import { query, queryOne, transaction } from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../middleware/auth.js';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
+import * as pointsService from './pointsService.js';
+const { getSetting } = pointsService;
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
@@ -59,6 +61,34 @@ export async function registerUser(email, username, password, displayName, refer
     );
 
     const userRow = result.rows[0];
+
+    // If a valid referral was used, record it and credit the referrer's bonus.
+    if (referredById) {
+      try {
+        const bonus = Number(await getSetting('points_referral_bonus', 100));
+        await client.query(
+          `INSERT INTO referrals (referrer_id, referred_user_id, reward_given)
+           VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+          [referredById, userRow.id, bonus]
+        );
+        await client.query(
+          'UPDATE users SET points = points + $1 WHERE id = $2',
+          [bonus, referredById]
+        );
+        // Ledger entry (point_ledger arrives with the economy migration).
+        try {
+          await client.query(
+            `INSERT INTO point_ledger (user_id, delta, reason, ref) VALUES ($1, $2, 'referral_bonus', $3)`,
+            [referredById, bonus, `user:${userRow.id}`]
+          );
+        } catch {
+          /* point_ledger not yet migrated — ignore. */
+        }
+      } catch {
+        /* Referral credit must never break registration. */
+      }
+    }
+
     const accessToken = generateAccessToken(userRow.id, userRow.email);
     const refreshToken = generateRefreshToken(userRow.id);
 

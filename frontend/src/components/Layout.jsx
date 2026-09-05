@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { FiHome, FiCompass, FiZap, FiVideo, FiMessageCircle, FiBell, FiUser, FiSettings, FiLogOut, FiDollarSign, FiShield, FiHash, FiSun, FiMoon, FiMenu, FiX } from 'react-icons/fi';
+import { FiHome, FiCompass, FiZap, FiVideo, FiMessageCircle, FiBell, FiUser, FiSettings, FiLogOut, FiDollarSign, FiShield, FiHash, FiSun, FiMoon, FiMenu, FiX, FiAward, FiGift, FiUsers } from 'react-icons/fi';
 import useAuthStore from '../stores/authStore';
 import useThemeStore from '../stores/themeStore';
 import api from '../api/client';
@@ -58,6 +58,9 @@ function Layout({ children }) {
     { path: '/messaging', icon: FiMessageCircle, label: 'Messages' },
     { path: '/notifications', icon: FiBell, label: 'Notifications', badge: unreadCount },
     { path: '/wallet', icon: FiDollarSign, label: 'Wallet' },
+    { path: '/earn', icon: FiGift, label: 'Earn' },
+    { path: '/referral', icon: FiUsers, label: 'Referrals' },
+    { path: '/leaderboard', icon: FiAward, label: 'Leaderboard' },
     { path: '/profile/' + user?.username, icon: FiUser, label: 'Profile' },
     { path: '/settings', icon: FiSettings, label: 'Settings' }
   ];

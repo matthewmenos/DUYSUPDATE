@@ -17,6 +17,7 @@ import {
 } from 'react-icons/fi';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
+import VaultSwapModal from '../components/VaultSwapModal';
 import api from '../api/client';
 
 const fmtUsd = (n) =>
@@ -40,6 +41,7 @@ const TX_META = {
 function WalletPage() {
   const queryClient = useQueryClient();
   const [activeModal, setActiveModal] = useState(null); // 'deposit' | 'withdraw' | 'swap'
+  const [showVault, setShowVault] = useState(false);
   const [modalForm, setModalForm] = useState({});
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -245,10 +247,11 @@ function WalletPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mt-5 grid grid-cols-4 gap-3">
+      <div className="mt-5 grid grid-cols-4 gap-3 md:grid-cols-5">
         <ActionButton icon={FiArrowDownLeft} label="Deposit" tone="bg-emerald-500/10 text-emerald-400" onClick={() => setActiveModal('deposit')} />
         <ActionButton icon={FiArrowUpRight} label="Withdraw" tone="bg-rose-500/10 text-rose-400" onClick={() => setActiveModal('withdraw')} />
         <ActionButton icon={FiRepeat} label="Swap" tone="bg-blue-500/10 text-blue-400" onClick={() => setActiveModal('swap')} />
+        <ActionButton icon={FiRepeat} label="Vault" tone="bg-violet-500/10 text-violet-400" onClick={() => setShowVault(true)} />
         {isConnected || connectedAddr ? (
           <ActionButton icon={FiWifiOff} label="Disconnect" tone="bg-gray-800 text-gray-400" onClick={handleDisconnect} />
         ) : (
@@ -452,6 +455,9 @@ function WalletPage() {
           </div>
         </div>
       )}
+
+      {/* Vault swap modal */}
+      {showVault && <VaultSwapModal onClose={() => setShowVault(false)} />}
     </div>
   );
 }
