@@ -66,6 +66,49 @@ router.get('/trending', async (req, res) => {
 });
 
 /**
+ * GET /feed/hashtags
+ * Get trending hashtags. Optional `q` filters by prefix (autocomplete).
+ */
+router.get('/hashtags', async (req, res) => {
+  try {
+    const q = req.query.q ? String(req.query.q).toLowerCase() : null;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+    const hashtags = await feedService.getTrendingHashtags(q, limit);
+    res.json({ hashtags });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /feed/top-verified
+ * Get top verified users for the search overlay.
+ */
+router.get('/top-verified', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+    const users = await feedService.getTopVerifiedUsers(limit);
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /feed/live-users
+ * Get followed users currently hosting a live room (rooms with status='live').
+ */
+router.get('/live-users', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+    const live = await feedService.getLiveUsers(req.userId, limit);
+    res.json({ live });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /feed/hashtag/:tag
  * Get posts by hashtag
  */

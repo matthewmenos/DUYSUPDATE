@@ -137,6 +137,66 @@ export async function getUserFeed(userId, viewerId = null, limit = 20, beforeId 
 }
 
 /**
+ * Get trending hashtags (top by post_count).
+ * When `q` is provided, only tags starting with that prefix are returned
+ * (used for the search overlay autocomplete — parity with legacy /api/hashtags).
+ */
+export async function getTrendingHashtags(q = null, limit = 10) {
+  if (q) {
+    return queryAll(
+      `SELECT tag, post_count FROM hashtags
+       WHERE tag ILIKE $1
+       ORDER BY post_count DESC
+       LIMIT $2`,
+      [`${q}%`, limit]
+    );
+  }
+  return queryAll(
+    `SELECT tag, post_count FROM hashtags
+     ORDER BY post_count DESC
+     LIMIT $1`,
+    [limit]
+  );
+}
+
+/**
+ * Get top verified users (blue/gold/grey badges) for the search overlay.
+ */
+export async function getTopVerifiedUsers(limit = 10) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.verified_badge,
+            (SELECT COUNT(*) FROM follows WHERE followee_id = u.id) AS followers
+     FROM users u
+     WHERE u.verified_badge != ''
+       AND u.is_banned = false
+     ORDER BY (SELECT COUNT(*) FROM follows WHERE followee_id = u.id) DESC, u.created_at ASC
+     LIMIT $1`,
+    [limit]
+  );
+}
+
+/**
+ * Get users the current user follows who are currently hosting a live room,
+ * plus the room summary (parity with legacy /api/live-users).
+ */
+export async function getLiveUsers(userId, limit = 10) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.verified_badge,
+            r.id AS room_id, r.title AS room_title, r.kind AS room_kind,
+            r.current_viewers, r.status
+     FROM rooms r
+     JOIN users u ON r.host_id = u.id
+     JOIN follows f ON f.followee_id = u.id
+     WHERE f.follower_id = $1
+       AND r.status = 'live'
+       AND u.is_banned = false
+     ORDER BY r.current_viewers DESC
+     LIMIT $2`,
+    [userId, limit]
+  );
+}
+
+/**
  * Record post view
  */
 export async function recordPostView(postId, userId = null) {
@@ -156,5 +216,8 @@ export default {
   getTrendingPosts,
   getHashtagFeed,
   getUserFeed,
+  getTrendingHashtags,
+  getTopVerifiedUsers,
+  getLiveUsers,
   recordPostView
 };
