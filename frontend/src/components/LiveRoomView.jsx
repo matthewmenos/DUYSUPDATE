@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import Hls from 'hls.js';
 import toast from 'react-hot-toast';
 import { FiEye, FiSend, FiX, FiHeart, FiMic, FiMicOff } from 'react-icons/fi';
+import useConfirm from '../hooks/useConfirm';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
 
@@ -22,6 +23,7 @@ function LiveRoomView({ room, onClose, onEnded }) {
   const [hearts, setHearts] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const socketRef = useRef(null);
+  const { ask, dialog } = useConfirm();
 
   const roomId = room?.id;
   const isHost = user && room && Number(user.id) === Number(room.host_id);
@@ -153,7 +155,8 @@ function LiveRoomView({ room, onClose, onEnded }) {
   );
 
   const handleEnd = async () => {
-    if (!window.confirm('End this live stream?')) return;
+    const ok = await ask({ title: 'End stream?', message: 'End this live stream for all viewers?', okLabel: 'End stream' });
+    if (!ok) return;
     try {
       await api.post(`/live/${roomId}/end`);
       setEnded(true);
@@ -262,6 +265,7 @@ function LiveRoomView({ room, onClose, onEnded }) {
           </div>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

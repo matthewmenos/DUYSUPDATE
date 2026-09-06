@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiEye } from 'react-icons/fi';
 import api from '../api/client';
+import useConfirm from '../hooks/useConfirm';
 
 const REACTIONS = ['😂', '😢', '😍', '🔥', '👍', '👏', '👀', '😮'];
 
@@ -16,6 +17,7 @@ function StoryViewer({ group, initialIndex = 0, onClose, onChanged }) {
   const [reactions, setReactions] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const startedRef = useRef({});
+  const { ask, dialog } = useConfirm();
 
   const story = stories[index];
 
@@ -56,7 +58,8 @@ function StoryViewer({ group, initialIndex = 0, onClose, onChanged }) {
 
   const handleDelete = async () => {
     if (!story || deleting) return;
-    if (!window.confirm('Delete this story?')) return;
+    const ok = await ask({ title: 'Delete story?', message: 'This story will be removed permanently.', okLabel: 'Delete' });
+    if (!ok) return;
     setDeleting(true);
     try {
       await api.delete(`/stories/${story.id}`);
@@ -149,6 +152,7 @@ function StoryViewer({ group, initialIndex = 0, onClose, onChanged }) {
           </div>
         </div>
       </div>
+      {dialog}
     </div>
   );
 }

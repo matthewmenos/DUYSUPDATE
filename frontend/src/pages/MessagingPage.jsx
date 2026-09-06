@@ -6,6 +6,7 @@ import { FiSend, FiPaperclip, FiEdit2, FiTrash2, FiCheck, FiX, FiMessageCircle, 
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
 import GroupChatView from '../components/GroupChatView';
+import useConfirm from '../hooks/useConfirm';
 
 /**
  * MessagingPage - split layout: conversation list (left) + chat view (right).
@@ -25,6 +26,7 @@ function MessagingPage() {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const { ask, dialog } = useConfirm();
 
   const currentUserId = user?.id;
 
@@ -169,7 +171,8 @@ const openConversation = async (conv) => {
   };
 
   const handleDelete = async (messageId) => {
-    if (!window.confirm('Delete this message?')) return;
+    const ok = await ask({ title: 'Delete message?', message: 'This message will be removed for everyone.', okLabel: 'Delete' });
+    if (!ok) return;
     try {
             await api.delete(`/messaging/messages/${messageId}`);
       setMessages((prev) => prev.filter((m) => Number(m.id) !== Number(messageId)));
@@ -389,6 +392,7 @@ return (
       </main>
       </div>
       )}
+      {dialog}
     </div>
   );
 }
