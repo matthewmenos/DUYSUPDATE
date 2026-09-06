@@ -325,6 +325,128 @@ export async function getAnalytics() {
   };
 }
 
+// ============================================================================
+// Verification requests (badge / face / id)
+// ============================================================================
+
+/**
+ * List verification requests, optionally filtered by status/type.
+ */
+export async function getVerificationRequests({ status = 'pending', type = null, limit = 50 } = {}) {
+  let sql = `SELECT vr.id, vr.type, vr.requested_badge, vr.cost_paid, vr.status,
+                    vr.admin_notes, vr.created_at,
+                    u.id AS user_id, u.username, u.display_name, u.email, u.avatar_url,
+                    u.points, u.verified_badge
+             FROM verification_requests vr
+             JOIN users u ON u.id = vr.user_id
+             WHERE 1=1`;
+  const params = [];
+  if (status && status !== 'all') {
+    params.push(status);
+    sql += ` AND vr.status = $${params.length}`;
+  }
+  if (type) {
+    params.push(type);
+    sql += ` AND vr.type = $${params.length}`;
+  }
+  params.push(limit);
+  sql += ` ORDER BY vr.created_at DESC LIMIT $${params.length}`;
+  return queryAll(sql, params);
+}
+
+export async function getVerificationRequestById(id) {
+  const req = await queryOne(
+    `SELECT vr.*, u.username, u.display_name, u.email
+     FROM verification_requests vr
+     JOIN users u ON u.id = vr.user_id
+     WHERE vr.id = $1`,
+    [id]
+  );
+  if (!req) throw new AppError('Verification request not found', 404);
+  return req;
+}
+
+/**
+ * Approve or reject a verification request.
+ * - For 'badge': on approve, sets the user's verified_badge + expiry.
+ * - Logs the admin action.
+ */
+export async function decideVerificationRequest(requestId, adminId, decision, notes = '') {
+  const req = await getVerificationRequestById(requestId);
+  if (req.status !== 'pending') {
+    throw new AppError('Request already reviewed', 400);
+  }
+
+  await query(
+    `UPDATE verification_requests
+     SET status = $2, admin_notes = $3, reviewed_by = $4, reviewed_at = NOW()
+     WHERE id = $1`,
+    [requestId, decision, notes, adminId]
+  );
+
+  if (decision === 'approved') {
+    if (req.type === 'badge' && req.requested_badge) {
+      const badge = req.requested_badge;
+      const expiryDays = badge === 'gold' ? 365 : badge === 'blue' ? 365 : 180;
+      await query(
+        `UPDATE users
+         SET verified_badge = $2, verified_badge_expires = NOW() + ($3::int * INTERVAL '1 day')
+         WHERE id = $1`,
+        [req.user_id, badge, expiryDays]
+      );
+    }
+  }
+
+  await logAdminAction(adminId, `verify_${req.type}_${decision}`, {
+    entityType: 'verification_requests',
+    entityId: Number(requestId),
+    details: { userId: req.user_id, badge: req.requested_badge, notes }
+  });
+
+  return getVerificationRequestById(requestId);
+}
+
+// ============================================================================
+// Economy controls
+// ============================================================================
+
+export async function adjustUserEconomy(userId, adminId, { deltaPoints = 0, deltaTokens = 0, note = '' }) {
+  const user = await queryOne('SELECT id, points, duys_tokens FROM users WHERE id = $1', [userId]);
+  if (!user) throw new AppError('User not found', 404);
+
+  const newPoints = Math.max(0, (user.points || 0) + deltaPoints);
+  const newTokens = Math.max(0, parseFloat(user.duys_tokens || 0) + deltaTokens);
+
+  await query(
+    `UPDATE users SET points = $2, duys_tokens = $3 WHERE id = $1`,
+    [userId, newPoints, newTokens.toFixed(2)]
+  );
+
+  await logAdminAction(adminId, 'adjust_economy', {
+    entityType: 'user',
+    entityId: Number(userId),
+    details: { deltaPoints, deltaTokens, note, newPoints, newTokens }
+  });
+
+  return { userId, newPoints, newTokens };
+}
+
+export async function toggleAdmin(userId, adminId) {
+  const user = await queryOne('SELECT id, is_admin FROM users WHERE id = $1', [userId]);
+  if (!user) throw new AppError('User not found', 404);
+  if (user.id === adminId) throw new AppError('You cannot change your own admin status', 400);
+
+  const newVal = !user.is_admin;
+  await query('UPDATE users SET is_admin = $2 WHERE id = $1', [userId, newVal]);
+
+  await logAdminAction(adminId, newVal ? 'grant_admin' : 'revoke_admin', {
+    entityType: 'user',
+    entityId: Number(userId)
+  });
+
+  return { userId, isAdmin: newVal };
+}
+
 export default {
   getDashboardStats,
   getUsers,
@@ -335,5 +457,10 @@ export default {
   getReportDetails,
   resolveReport,
   getAnalytics,
-  logAdminAction
+  logAdminAction,
+  getVerificationRequests,
+  getVerificationRequestById,
+  decideVerificationRequest,
+  adjustUserEconomy,
+  toggleAdmin
 };

@@ -54,6 +54,26 @@ function AdminPage() {
     enabled: tab === 'analytics'
   });
 
+  // Verification requests (badge / face / id)
+  const { data: verificationsData = [], refetch: refetchVerifications } = useQuery({
+    queryKey: ['admin', 'verifications'],
+    queryFn: async () => {
+      const res = await api.get('/admin/verifications', { params: { status: 'pending', limit: 50 } });
+      return res.data.requests || [];
+    }
+  });
+
+  const handleVerificationDecision = async (reqId, action) => {
+    if (!window.confirm(`Approve verification #${reqId}?`)) return;
+    try {
+      await api.patch(`/admin/verifications/${reqId}`, { action, notes: '' });
+      toast.success(`Verification ${action}`);
+      refetchVerifications();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update verification');
+    }
+  };
+
   const statCards = stats
     ? [
         { label: 'Total users', value: stats.totalUsers ?? 0, icon: FiUserCheck },
@@ -110,7 +130,8 @@ function AdminPage() {
     { key: 'dashboard', label: 'Dashboard', icon: FiHome },
     { key: 'reports', label: 'Reports', icon: FiShield },
     { key: 'users', label: 'Users', icon: FiUsers },
-    { key: 'analytics', label: 'Analytics', icon: FiTrendingUp }
+    { key: 'analytics', label: 'Analytics', icon: FiTrendingUp },
+    { key: 'verifications', label: 'Verifications', icon: FiUserCheck }
   ];
 
   return (
@@ -296,6 +317,57 @@ function AdminPage() {
         </div>
       )}
 
+      {/* ===================== VERIFICATIONS ===================== */}
+      {tab === 'verifications' && (
+        <div className="space-y-3">
+          {verificationsData.length === 0 ? (
+            <div className="rounded-2xl border border-gray-700 bg-gray-900 p-6 text-center text-gray-400">
+              No pending verification requests.
+            </div>
+          ) : (
+            verificationsData.map((vr) => (
+              <div key={vr.id} className="rounded-xl border border-gray-700 bg-gray-900 p-4 flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <img
+                    src={vr.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(vr.username || 'U')}&background=6366f1&color=fff`}
+                    className="w-9 h-9 rounded-full object-cover bg-gray-800"
+                    alt=""
+                  />
+                  <div>
+                    <p className="text-sm">
+                      <span className="font-semibold">{vr.display_name || vr.username}</span>
+                      <span className="text-gray-400"> requests a </span>
+                      <span className="font-semibold capitalize text-blue-400">{vr.type}</span>
+                      {vr.requested_badge && <span className="text-gray-400"> ({vr.requested_badge})</span>}
+                    </p>
+                    {vr.type === 'badge' && (
+                      <p className="text-xs text-gray-500 mt-1">Paid {Number(vr.cost_paid).toLocaleString()} points</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatDistanceToNow(new Date(vr.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleVerificationDecision(vr.id, 'approved')}
+                    className="rounded-full bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-3 py-2"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleVerificationDecision(vr.id, 'rejected')}
+                    className="rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-3 py-2"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
       {/* ===================== REPORT MODAL ===================== */}
       {reportModal && (
         <Modal onClose={() => setReportModal(null)} title={`Report #${reportModal.id}`}>
@@ -380,6 +452,34 @@ function UserModal({ userId, onClose, onBan, onUnban }) {
     queryFn: async () => (await api.get(`/admin/users/${userId}`)).data
   });
 
+  const [deltaPoints, setDeltaPoints] = useState(0);
+  const [deltaTokens, setDeltaTokens] = useState(0);
+  const [ecoBusy, setEcoBusy] = useState(false);
+
+  const handleAdjustEconomy = async () => {
+    if (deltaPoints === 0 && deltaTokens === 0) return;
+    setEcoBusy(true);
+    try {
+      await api.patch(`/admin/users/${userId}/economy`, { deltaPoints, deltaTokens, note: 'Manual adjustment' });
+      toast.success('Economy updated');
+      setDeltaPoints(0);
+      setDeltaTokens(0);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to adjust economy');
+    } finally {
+      setEcoBusy(false);
+    }
+  };
+
+  const handleToggleAdmin = async () => {
+    try {
+      const res = await api.patch(`/admin/users/${userId}/admin`, {});
+      toast.success(res.data.isAdmin ? 'Admin granted' : 'Admin revoked');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to toggle admin');
+    }
+  };
+
   const user = data?.user;
 
   return (
@@ -427,6 +527,47 @@ function UserModal({ userId, onClose, onBan, onUnban }) {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          {/* Economy controls */}
+          <div className="rounded-xl border border-gray-700 bg-black p-3 space-y-2">
+            <h4 className="text-xs font-bold uppercase text-gray-400">Economy</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Points delta</label>
+                <input
+                  type="number"
+                  value={deltaPoints}
+                  onChange={(e) => setDeltaPoints(parseInt(e.target.value) || 0)}
+                  className="w-full bg-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">DUYS delta</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={deltaTokens}
+                  onChange={(e) => setDeltaTokens(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleAdjustEconomy}
+              disabled={ecoBusy || (deltaPoints === 0 && deltaTokens === 0)}
+              className="w-full rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-1.5 text-sm disabled:opacity-50"
+            >
+              {ecoBusy ? 'Saving...' : 'Apply adjustment'}
+            </button>
+            {!user?.is_admin && (
+              <button
+                onClick={handleToggleAdmin}
+                className="w-full rounded-full border border-amber-500 text-amber-400 hover:bg-amber-500/10 font-semibold py-1.5 text-sm"
+              >
+                Grant admin
+              </button>
             )}
           </div>
 

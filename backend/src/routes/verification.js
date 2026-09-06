@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
-import { query, queryOne, queryAll } from '../config/database.js';
+import { query, queryOne, queryAll, transaction } from '../config/database.js';
 import { uploadVerification, deleteVerification } from '../services/storage.js';
 import { authenticateJWT } from '../middleware/auth.js';
 
@@ -295,6 +295,65 @@ router.get('/status', authenticateJWT, async (req, res) => {
     });
   } catch (error) {
     console.error('[List Verifications]', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /verify/badge/request
+ * Request a verified badge (blue / gold / grey) by spending points.
+ * Requires authentication. Creates a verification_requests row for admin review.
+ */
+const BADGE_COSTS = { blue: 10000, gold: 25000, grey: 5000 };
+
+router.post('/badge/request', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const badge = req.body.badge;
+
+    if (!['blue', 'gold', 'grey'].includes(badge)) {
+      return res.status(400).json({ error: 'Invalid badge type' });
+    }
+
+    const cost = BADGE_COSTS[badge];
+
+    // Check for an existing pending request.
+    const existing = await queryOne(
+      `SELECT id FROM verification_requests
+       WHERE user_id = $1 AND type = 'badge' AND status = 'pending'`,
+      [userId]
+    );
+    if (existing) {
+      return res.status(409).json({ error: 'You already have a pending badge request' });
+    }
+
+    // Check points balance + feature flag.
+    const user = await queryOne(
+      `SELECT points, verified_badge FROM users WHERE id = $1`,
+      [userId]
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.verified_badge) {
+      return res.status(400).json({ error: 'You already have a verified badge' });
+    }
+    if ((user.points || 0) < cost) {
+      return res.status(400).json({ error: `Insufficient points. You need ${cost} for a ${badge} badge.` });
+    }
+
+    // Deduct points + insert request (atomic transaction).
+    const inserted = await transaction(async (client) => {
+      await client.query(`UPDATE users SET points = points - $1 WHERE id = $2`, [cost, userId]);
+      const res = await client.query(
+        `INSERT INTO verification_requests (user_id, type, requested_badge, cost_paid, status)
+         VALUES ($1, $2, $3, $4, 'pending')
+         RETURNING id, status`,
+        [userId, 'badge', badge, cost]
+      );
+      return res.rows[0];
+    });
+    return res.status(201).json(inserted);
+  } catch (error) {
+    console.error('[Badge Request]', error);
     res.status(500).json({ error: error.message });
   }
 });

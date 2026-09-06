@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { FiUsers, FiCheck, FiEdit2, FiX, FiBell, FiBellOff, FiMegaphone, FiShield } from 'react-icons/fi';
+import { FiUsers, FiCheck, FiEdit2, FiX, FiBell, FiBellOff, FiVolume2, FiShield } from 'react-icons/fi';
 import api from '../api/client';
 import Post from '../components/Post';
 import useAuthStore from '../stores/authStore';
@@ -195,7 +195,7 @@ return (
                   onClick={() => setShowBroadcast(true)}
                   className="flex items-center gap-1 rounded-full border border-gray-700 text-gray-300 px-4 py-1.5 text-sm font-semibold hover:bg-gray-900"
                 >
-                  <FiMegaphone className="w-3.5 h-3.5" />
+                  <FiVolume2 className="w-3.5 h-3.5" />
                   Broadcast
                 </button>
               </>
@@ -246,7 +246,7 @@ return (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <form onSubmit={handleBroadcast} className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><FiMegaphone /> Send a broadcast</h3>
+              <h3 className="text-lg font-bold flex items-center gap-2"><FiVolume2 /> Send a broadcast</h3>
               <button type="button" onClick={() => setShowBroadcast(false)} className="text-gray-400 hover:text-white">
                 <FiX />
               </button>

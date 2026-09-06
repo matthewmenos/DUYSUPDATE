@@ -144,4 +144,81 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
+/**
+ * GET /admin/verifications?status=&type=
+ * List badge/face/id verification requests.
+ */
+router.get('/verifications', async (req, res) => {
+  try {
+    const requests = await adminService.getVerificationRequests({
+      status: req.query.status || 'pending',
+      type: req.query.type || null,
+      limit: Math.min(parseInt(req.query.limit) || 50, 100)
+    });
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /admin/verifications/:id
+ * Approve or reject a verification request.
+ */
+router.patch('/verifications/:id', async (req, res) => {
+  const schema = Joi.object({
+    action: Joi.string().valid('approved', 'rejected').required(),
+    notes: Joi.string().max(1000).allow('').default('')
+  });
+  const { error, value } = schema.validate(req.body || {});
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const result = await adminService.decideVerificationRequest(req.params.id, req.userId, value.action, value.notes);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /admin/users/:userId/economy
+ * Credit/debit points and/or DUYS tokens.
+ */
+router.patch('/users/:userId/economy', async (req, res) => {
+  const schema = Joi.object({
+    deltaPoints: Joi.number().integer().default(0),
+    deltaTokens: Joi.number().default(0),
+    note: Joi.string().max(500).allow('').default('')
+  });
+  const { error, value } = schema.validate(req.body || {});
+  if (error) return res.status(400).json({ error: error.details[0].message });
+  if (value.deltaPoints === 0 && value.deltaTokens === 0) {
+    return res.status(400).json({ error: 'Provide a non-zero delta for points or tokens' });
+  }
+
+  try {
+    const result = await adminService.adjustUserEconomy(req.params.userId, req.userId, value);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /admin/users/:userId/admin
+ * Grant/revoke admin privileges.
+ */
+router.patch('/users/:userId/admin', async (req, res) => {
+  try {
+    const result = await adminService.toggleAdmin(req.params.userId, req.userId);
+    res.json(result);
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

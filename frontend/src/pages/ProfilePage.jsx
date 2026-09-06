@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
 import Post from '../components/Post';
+import BadgeRequestModal from '../components/BadgeRequestModal';
 
 const PLACEHOLDER = 'https://via.placeholder.com/150';
 
@@ -34,6 +35,7 @@ function ProfilePage() {
   const [activeTab, setActiveTab] = useState('posts');
   const [editing, setEditing] = useState(false);
   const [following, setFollowing] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', username],
@@ -140,12 +142,22 @@ function ProfilePage() {
           </div>
           <div className="mt-16">
             {isOwn ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="px-4 py-1.5 rounded-full border border-gray-600 font-semibold text-sm hover:bg-gray-800 transition"
-              >
-                Edit profile
-              </button>
+              <div className="flex items-center gap-2">
+                {!profile.verified_badge && (
+                  <button
+                    onClick={() => setShowBadgeModal(true)}
+                    className="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 font-semibold text-sm text-white transition"
+                  >
+                    Request verified
+                  </button>
+                )}
+                <button
+                  onClick={() => setEditing(true)}
+                  className="px-4 py-1.5 rounded-full border border-gray-600 font-semibold text-sm hover:bg-gray-800 transition"
+                >
+                  Edit profile
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleFollow}
@@ -243,6 +255,13 @@ function ProfilePage() {
         )}
       </div>
 
+      {showBadgeModal && (
+        <BadgeRequestModal
+          points={profile.points || 0}
+          onClose={() => setShowBadgeModal(false)}
+        />
+      )}
+
       {editing && (
         <EditProfileModal
           profile={profile}
@@ -258,7 +277,7 @@ function ProfilePage() {
   );
 }
 /**
- * Edit profile modal — avatar upload + editable fields via PATCH /users/me.
+ * Edit profile modal ï¿½ avatar upload + editable fields via PATCH /users/me.
  */
 function EditProfileModal({ profile, setUser, onClose, onSaved }) {
   const [displayName, setDisplayName] = useState(profile.display_name || '');
