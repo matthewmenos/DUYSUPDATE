@@ -10,6 +10,8 @@ import useAuthStore from '../stores/authStore';
 
 import { getErrorMessage } from '../utils/errors';
 
+import VerificationSection from '../components/VerificationSection';
+
 function SettingsPage() {
 
   const user = useAuthStore((s) => s.user);
@@ -698,70 +700,6 @@ function TwoFactorSection({ user, setUser }) {
 
   );
 
-}
-
-function VerificationSection({ user }) {
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  React.useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await api.get('/verify/status');
-        if (active) setStatus(res.data.verifications || []);
-      } catch (e) {
-        if (active) setStatus([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, []);
-
-  const badge = user?.verified_badge;
-
-  return (
-    <Section icon={<FiCheck className="w-5 h-5" />} title="Verification">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Verified badge</p>
-            <p className="text-xs text-gray-500">
-              {badge ? `You have a ${badge} badge.` : 'No verified badge yet.'}
-            </p>
-          </div>
-          {badge && (
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${
-              badge === 'blue' ? 'bg-blue-500' : badge === 'gold' ? 'bg-amber-500' : 'bg-gray-500'
-            }`}>
-              {badge}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <p className="text-sm font-medium mb-2">Document &amp; face checks</p>
-          {loading ? (
-            <p className="text-xs text-gray-500">Loading…</p>
-          ) : (status || []).length === 0 ? (
-            <p className="text-xs text-gray-500">No verification attempts yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {(status || []).map((v, i) => (
-                <li key={i} className="flex items-center justify-between text-sm">
-                  <span className="capitalize text-gray-300">{v.type}</span>
-                  <span className={v.isVerified ? 'text-green-400 font-medium' : 'text-gray-500'}>
-                    {v.isVerified ? 'Verified' : 'Pending'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </Section>
-  );
 }
 
 function Section({ icon, title, children, danger }) {
