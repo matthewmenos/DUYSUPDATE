@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 
 /**
- * Legal pages — Terms of Service, Community Guidelines, Privacy Policy.
+ * Legal pages -- Terms of Service, Community Guidelines, Privacy Policy.
  * Ported verbatim from DUYS/templates/legal/*.html.
  * Renders standalone (brand + back-to-login) so it works pre-auth.
  */
@@ -49,6 +49,7 @@ const DOCS = {
     ],
   },
 };
+
 function LegalPage() {
   const { page } = useParams();
   const doc = DOCS[page] || DOCS.terms;
@@ -89,7 +90,7 @@ function LegalPage() {
           </div>
 
           <article className="space-y-6">
-            {doc.body.map(([heading, text]) => (
+                        {doc.body.map(([heading, text]) => (
               <section key={heading}>
                 <h2 className="text-lg font-bold mb-1">{heading}</h2>
                 <p className="text-gray-300 text-sm leading-relaxed">{text}</p>
@@ -98,7 +99,7 @@ function LegalPage() {
           </article>
 
           <div className="auth-switch mt-8">
-            <Link to="/login">← Back to sign in</Link>
+            <Link to="/login">Back to sign in</Link>
           </div>
         </div>
       </div>

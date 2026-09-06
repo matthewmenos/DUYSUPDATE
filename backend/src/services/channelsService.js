@@ -212,7 +212,157 @@ export async function getChannelSubscribers(channelId, limit = 20, offset = 0) {
   );
 }
 
+// ============================================================================
+// Channel mute
+// ============================================================================
+export async function muteChannel(userId, channelId) {
+  await query(
+    'INSERT INTO channel_mutes (user_id, channel_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [userId, channelId]
+  );
+  return { muted: true };
+}
+
+export async function unmuteChannel(userId, channelId) {
+  await query('DELETE FROM channel_mutes WHERE user_id = $1 AND channel_id = $2',
+    [userId, channelId]);
+  return { muted: false };
+}
+
+export async function isChannelMuted(userId, channelId) {
+  const row = await queryOne(
+    'SELECT 1 FROM channel_mutes WHERE user_id = $1 AND channel_id = $2',
+    [userId, channelId]
+  );
+  return !!row;
+}
+
+// ============================================================================
+// Channel broadcast
+// ============================================================================
+export async function broadcastToChannel(channelId, authorId, { body, title = '' }) {
+  const channel = await queryOne('SELECT id, owner_id, name FROM channels WHERE id = $1', [channelId]);
+  if (!channel) throw new AppError('Channel not found', 404);
+  if (channel.owner_id !== parseInt(authorId, 10)) {
+    throw new AppError('Only the owner can broadcast', 403);
+  }
+
+  const result = await query(
+    `INSERT INTO posts (author_id, kind, body, title, channel_id, is_sponsored)
+     VALUES ($1, 'text', $2, $3, $4, true)
+     RETURNING *`,
+        [authorId, body, title, channelId]
+  );
+  return result.rows[0];
+}
+
+// ============================================================================
+// Channel verification
+// ============================================================================
+
+export async function selfVerifyChannel(channelId, userId) {
+  const channel = await queryOne(
+    'SELECT id, owner_id, verified_badge FROM channels WHERE id = $1',
+    [channelId]
+  );
+  if (!channel) throw new AppError('Channel not found', 404);
+  if (channel.owner_id !== parseInt(userId, 10)) {
+    throw new AppError('Only the owner can self-verify', 403);
+  }
+
+  const user = await queryOne('SELECT verified_badge FROM users WHERE id = $1', [userId]);
+  if (!user?.verified_badge) throw new AppError('not_verified', 403);
+  if (user.self_verified_channel_id && user.self_verified_channel_id !== channelId) {
+    throw new AppError('slot_used', 400);
+  }
+
+  await query(
+    `UPDATE channels SET verified_badge = $1, verification_status = 'approved', self_verified = true
+     WHERE id = $2`,
+    [user.verified_badge, channelId]
+  );
+  await query('UPDATE users SET self_verified_channel_id = $1 WHERE id = $2', [channelId, userId]);
+  return { verified: true };
+}
+
+export async function unselfVerifyChannel(channelId, userId) {
+  const channel = await queryOne('SELECT id, owner_id FROM channels WHERE id = $1', [channelId]);
+  if (!channel) throw new AppError('Channel not found', 404);
+  if (channel.owner_id !== parseInt(userId, 10)) throw new AppError('Only the owner can do this', 403);
+
+  await query(
+    "UPDATE channels SET verified_badge = '', verification_status = 'none', self_verified = false WHERE id = $1",
+    [channelId]
+  );
+  await query(
+    'UPDATE users SET self_verified_channel_id = NULL WHERE id = $1 AND self_verified_channel_id = $2',
+    [userId, channelId]
+  );
+  return { verified: false };
+}
+
+export async function applyChannelVerification(channelId, userId, { message = '' }) {
+  const channel = await queryOne(
+    'SELECT id, owner_id, verified_badge FROM channels WHERE id = $1',
+    [channelId]
+  );
+  if (!channel) throw new AppError('Channel not found', 404);
+  if (channel.owner_id !== parseInt(userId, 10)) throw new AppError('Only the owner can apply', 403);
+  if (channel.verified_badge) throw new AppError('already_verified', 400);
+
+  const existing = await queryOne(
+    'SELECT id FROM channel_verifications WHERE channel_id = $1 AND status = \'pending\'',
+    [channelId]
+  );
+  if (existing) throw new AppError('already_pending', 400);
+
+  await query(
+    'INSERT INTO channel_verifications (channel_id, user_id, reason) VALUES ($1, $2, $3)',
+    [channelId, userId, message]
+  );
+  await query("UPDATE channels SET verification_status = 'pending' WHERE id = $1", [channelId]);
+  return { applied: true };
+}
+
+export async function getChannelVerifications(status = 'pending', limit = 50, offset = 0) {
+  return queryAll(
+    `SELECT cv.*, c.name AS channel_name, c.handle, u.username, u.display_name, u.avatar_url
+     FROM channel_verifications cv
+     JOIN channels c ON cv.channel_id = c.id
+     JOIN users u ON cv.user_id = u.id
+     WHERE cv.status = $1
+     ORDER BY cv.created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [status, limit, offset]
+  );
+}
+
+export async function reviewChannelVerification(verificationId, adminId, { status, badge = 'blue' }) {
+  const verification = await queryOne(
+    'SELECT id, channel_id FROM channel_verifications WHERE id = $1',
+    [verificationId]
+  );
+  if (!verification) throw new AppError('Verification application not found', 404);
+
+  if (status === 'approved') {
+    await query(
+      `UPDATE channels SET verified_badge = $1, verification_status = 'approved' WHERE id = $2`,
+      [badge, verification.channel_id]
+    );
+  } else {
+    await query("UPDATE channels SET verification_status = 'rejected' WHERE id = $1",
+      [verification.channel_id]);
+  }
+
+  await query(
+    `UPDATE channel_verifications SET status = $1, decided_by = $2, updated_at = NOW() WHERE id = $3`,
+    [status, adminId, verificationId]
+  );
+  return { reviewed: true };
+}
+
 export default {
+  // Existing
   createChannel,
   getChannels,
   getChannelById,
@@ -221,5 +371,15 @@ export default {
   subscribeToChannel,
   unsubscribeFromChannel,
   getChannelPosts,
-  getChannelSubscribers
+  getChannelSubscribers,
+  // Channel depth
+  muteChannel,
+  unmuteChannel,
+  isChannelMuted,
+  broadcastToChannel,
+  selfVerifyChannel,
+  unselfVerifyChannel,
+  applyChannelVerification,
+  getChannelVerifications,
+  reviewChannelVerification
 };

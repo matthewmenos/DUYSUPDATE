@@ -246,6 +246,20 @@ export async function notifyMessageReceived(recipientId, actorId, conversationId
   });
 }
 
+/** You were mentioned in a group chat. */
+export async function notifyGroupMention(recipientId, actorId, messageId) {
+  const title = await actorTitle(actorId, 'mentioned you in a group');
+  return createNotification({
+    userId: recipientId,
+    actorId,
+    kind: 'mention',
+    title,
+    message: '',
+    entityType: 'group_message',
+    entityId: Number(messageId)
+  });
+}
+
 export default {
   createNotification,
   getNotifications,
@@ -260,5 +274,6 @@ export default {
   notifyQuoted,
   notifyFollowed,
   notifyMentioned,
-  notifyMessageReceived
+  notifyMessageReceived,
+  notifyGroupMention
 };

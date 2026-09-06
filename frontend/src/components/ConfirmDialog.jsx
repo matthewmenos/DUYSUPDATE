@@ -33,7 +33,10 @@ function ConfirmDialog({
             {icon === 'danger' ? (
               <path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z" />
             ) : (
-              <path d="M4 3h16v18H4z" /><path d="M8 7h8M8 11h8M8 15h5" />
+              <>
+                <path d="M4 3h16v18H4z" />
+                <path d="M8 7h8M8 11h8M8 15h5" />
+              </>
             )}
           </svg>
         </div>

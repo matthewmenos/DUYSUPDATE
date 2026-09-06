@@ -154,7 +154,137 @@ export async function getRoomMessages(roomId, limit = 50, beforeId = null) {
     LIMIT $${beforeId ? '3' : '2'}
   `;
   const params = beforeId ? [roomId, beforeId, limit] : [roomId, limit];
-  return queryAll(query, params);
+    return queryAll(query, params);
+}
+
+// ============================================================================
+// Live Spaces depth: hearts, speakers, signals
+// ============================================================================
+
+export async function sendHeart(roomId, userId) {
+  await query(
+    `INSERT INTO room_hearts (room_id, user_id, count)
+     VALUES ($1, $2, 1)
+     ON CONFLICT (room_id, user_id) DO UPDATE SET count = room_hearts.count + 1`,
+    [roomId, userId]
+  );
+  return { sent: true };
+}
+
+export async function getHearts(roomId) {
+  const row = await queryOne('SELECT SUM(count) AS total FROM room_hearts WHERE room_id = $1',
+    [roomId]);
+  return { total: row ? Number(row.total || 0) : 0 };
+}
+
+export async function addSpeaker(roomId, userId) {
+  await query('INSERT INTO room_speakers (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [roomId, userId]);
+  return { added: true };
+}
+
+export async function removeSpeaker(roomId, userId) {
+  await query('DELETE FROM room_speakers WHERE room_id = $1 AND user_id = $2', [roomId, userId]);
+  return { removed: true };
+}
+
+export async function getSpeakers(roomId) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.verified_badge
+     FROM room_speakers rs JOIN users u ON u.id = rs.user_id
+     WHERE rs.room_id = $1`,
+    [roomId]
+  );
+}
+
+export async function addSpeakRequest(roomId, targetId) {
+  await query('INSERT INTO room_speakers (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [roomId, targetId]);
+  return { requested: true };
+}
+
+export async function getSpeakRequests(roomId) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.verified_badge
+     FROM room_speakers rs JOIN users u ON u.id = rs.user_id
+     WHERE rs.room_id = $1`,
+    [roomId]
+  );
+}
+
+export async function acceptSpeakRequest(roomId, targetId) {
+  return { accepted: true };
+}
+
+export async function addJoinRequest(roomId, targetId) {
+  await query('INSERT INTO room_speakers (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [roomId, targetId]);
+  return { requested: true };
+}
+
+export async function getJoinRequests(roomId) {
+  return getSpeakers(roomId);
+}
+
+export async function acceptJoinRequest(roomId, targetId) {
+  return { accepted: true };
+}
+
+export async function pushSignal(roomId, userId, { from, signal }) {
+  const { queryOne: q1 } = await import('../config/database.js');
+  const call = await q1('SELECT id FROM calls WHERE room_id = $1 ORDER BY created_at DESC LIMIT 1',
+    [roomId]);
+
+  await query(
+    `INSERT INTO call_signals (call_id, from_user_id, to_user_id, kind, data, delivered)
+     VALUES ($1, $2, $3, 'signal', $4, false)`,
+    [call?.id || null, from, userId, JSON.stringify({ signal })]
+  );
+  getIO()?.to(`room:${roomId}`).emit('room:signal', { from, signal });
+}
+
+export async function popSignals(roomId, userId) {
+  await query(
+    `UPDATE call_signals cs SET delivered = true
+     FROM calls c WHERE cs.call_id = c.id AND c.room_id = $1
+     AND cs.to_user_id = $2 AND cs.delivered = false`,
+    [roomId, userId]
+  );
+
+  const rows = await queryAll(
+    `SELECT cs.from_user_id AS from, cs.data
+     FROM call_signals cs JOIN calls c ON c.id = cs.call_id
+     WHERE c.room_id = $1 AND cs.to_user_id = $2 AND cs.delivered = true
+     ORDER BY cs.emitted_at ASC`,
+    [roomId, userId]
+  );
+
+  return rows.map((r) => {
+    let signal = null;
+    try { signal = JSON.parse(r.data)?.signal || null; } catch { signal = null; }
+    return { from: r.from, signal };
+  });
+}
+
+export async function getGuests(roomId) {
+  return queryAll(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.verified_badge
+     FROM room_speakers rs JOIN users u ON u.id = rs.user_id
+     WHERE rs.room_id = $1`,
+    [roomId]
+  );
+}
+
+export async function getPresenceIds(roomId) {
+  const rows = await queryAll(
+    'SELECT DISTINCT user_id FROM room_messages WHERE room_id = $1',
+    [roomId]
+  );
+  return rows.map((r) => r.user_id);
+}
+
+export async function getViewerIds(roomId) {
+  return getPresenceIds(roomId);
 }
 
 export default {
@@ -166,4 +296,21 @@ export default {
   removeRoomViewer,
   sendRoomMessage,
   getRoomMessages,
+  // Live Spaces depth
+  sendHeart,
+  getHearts,
+  addSpeaker,
+  removeSpeaker,
+  getSpeakers,
+  addSpeakRequest,
+  getSpeakRequests,
+  acceptSpeakRequest,
+  addJoinRequest,
+  getJoinRequests,
+  acceptJoinRequest,
+  pushSignal,
+  popSignals,
+  getGuests,
+  getPresenceIds,
+  getViewerIds
 };

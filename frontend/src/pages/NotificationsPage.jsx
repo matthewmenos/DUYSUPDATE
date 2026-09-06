@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,6 +16,7 @@ import { onNotification } from '../utils/notificationSocket';
 function NotificationsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [filter, setFilter] = useState('all');
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', 'list'],
@@ -80,6 +81,20 @@ function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
+  const FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'mention', label: 'Mentions' },
+    { key: 'like', label: 'Likes' },
+    { key: 'comment', label: 'Comments' },
+    { key: 'follow', label: 'Follows' },
+    { key: 'message', label: 'Messages' },
+    { key: 'system', label: 'System' }
+  ];
+
+  const filteredNotifications = filter === 'all'
+    ? notifications
+    : notifications.filter((n) => n.kind === filter);
+
   return (
     <div className="max-w-2xl mx-auto border-l border-r border-gray-700 min-h-screen">
       {/* Header */}
@@ -100,16 +115,33 @@ function NotificationsPage() {
         </div>
       </div>
 
+      {/* Filter pills */}
+      <div className="sticky top-[57px] z-[9] bg-black/95 backdrop-blur px-3 py-2 border-b border-gray-800 flex gap-2 overflow-x-auto">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${
+              filter === f.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-900 text-gray-400 hover:text-white'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="p-8 text-center text-gray-500">Loading notifications...</div>
-      ) : notifications.length === 0 ? (
+      ) : filteredNotifications.length === 0 ? (
         <div className="p-10 text-center text-gray-500 flex flex-col items-center gap-2">
           <FiInbox className="w-10 h-10" />
-          <p>No notifications yet</p>
+          <p>{filter === 'all' ? 'No notifications yet' : `No ${filter} notifications`}</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-800">
-          {notifications.map((n) => (
+          {filteredNotifications.map((n) => (
             <li key={n.id}>
               <button
                 onClick={() => handleOpen(n)}

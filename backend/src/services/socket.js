@@ -40,13 +40,54 @@ export function initSocket(server) {
       socket.leave(`room:${roomId}`);
     });
 
-    // Join a direct-message conversation room for edits/deletes/typing.
+    // Channel join/leave
+    socket.on('channel:join', (channelId) => {
+      socket.join(`channel:${channelId}`);
+    });
+
+    socket.on('channel:leave', (channelId) => {
+      socket.leave(`channel:${channelId}`);
+    });
+
+    // Call room join/leave
+    socket.on('call:join', (callId) => {
+      socket.join(`call:${callId}`);
+    });
+
+    socket.on('call:leave', (callId) => {
+      socket.leave(`call:${callId}`);
+    });
+
+    // Channel mute (local echo to inform client of state)
+    socket.on('room:mute', ({ channelId }) => {
+      socket.to(`channel:${channelId}`).emit('room:mute', { channelId, userId: socket.userId });
+    });
+
+        // Join a direct-message conversation room for edits/deletes/typing.
     socket.on('dm:join', (conversationId) => {
       socket.join(`conversation:${conversationId}`);
     });
 
     socket.on('dm:leave', (conversationId) => {
       socket.leave(`conversation:${conversationId}`);
+    });
+
+    // Group room
+    socket.on('group:join', (groupId) => {
+      socket.join(`group:${groupId}`);
+    });
+
+    socket.on('group:leave', (groupId) => {
+      socket.leave(`group:${groupId}`);
+    });
+
+    // Typing indicator in a group
+    socket.on('group:typing', ({ groupId, isTyping }) => {
+      socket.to(`group:${groupId}`).emit('group:typing', {
+        groupId,
+        userId: socket.userId,
+        isTyping: isTyping !== false
+      });
     });
 
     // Typing indicator: relay to the other participant in the conversation.

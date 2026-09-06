@@ -159,4 +159,90 @@ router.get('/:roomId/messages', async (req, res) => {
   }
 });
 
+/**
+ * POST /live/:roomId/heart
+ * Send a heart (reaction) to the host — broadcast to the room.
+ */
+router.post('/:roomId/heart', async (req, res) => {
+  try {
+    const result = await liveService.sendHeart(req.params.roomId, req.userId);
+    const { total } = await liveService.getHearts(req.params.roomId);
+    getIO()?.to(`room:${req.params.roomId}`).emit('live:heart', {
+      roomId: parseInt(req.params.roomId, 10),
+      userId: req.userId,
+      total
+    });
+    res.json({ ...result, total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /live/:roomId/hearts
+ * Get current hearts count.
+ */
+router.get('/:roomId/hearts', async (req, res) => {
+  try {
+    const result = await liveService.getHearts(req.params.roomId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /live/:roomId/speak
+ * Request / accept to speak (host approves). Body: { action: 'request'|'accept'|'remove', targetUserId? }
+ */
+router.post('/:roomId/speak', async (req, res) => {
+  const { action = 'request', targetUserId } = req.body;
+  try {
+    let result;
+    if (action === 'request') {
+      result = await liveService.addSpeaker(req.params.roomId, req.userId);
+      getIO()?.to(`room:${req.params.roomId}`).emit('live:speak-request', {
+        roomId: parseInt(req.params.roomId, 10),
+        userId: req.userId
+      });
+    } else if (action === 'accept') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required for accept' });
+      const room = await liveService.getRoomById(req.params.roomId);
+      if (!room || Number(room.host_id) !== Number(req.userId)) {
+        return res.status(403).json({ error: 'Only the host can accept speakers' });
+      }
+      result = await liveService.addSpeaker(req.params.roomId, targetUserId);
+      getIO()?.to(`room:${req.params.roomId}`).emit('live:speak-accepted', {
+        roomId: parseInt(req.params.roomId, 10),
+        userId: targetUserId
+      });
+    } else if (action === 'remove') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required for remove' });
+      const room = await liveService.getRoomById(req.params.roomId);
+      if (!room || Number(room.host_id) !== Number(req.userId)) {
+        return res.status(403).json({ error: 'Only the host can remove speakers' });
+      }
+      result = await liveService.removeSpeaker(req.params.roomId, targetUserId);
+    } else {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /live/:roomId/speakers
+ * List current speakers.
+ */
+router.get('/:roomId/speakers', async (req, res) => {
+  try {
+    const speakers = await liveService.getSpeakers(req.params.roomId);
+    res.json({ speakers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

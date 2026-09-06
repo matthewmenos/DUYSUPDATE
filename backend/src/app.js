@@ -24,6 +24,7 @@ import economyRoutes, { adWebhookRouter } from './routes/economy.js';
 import notificationRoutes from './routes/notifications.js';
 import verificationRoutes from './routes/verification.js';
 import adminRoutes from './routes/admin.js';
+import callRoutes from './routes/calls.js';
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use('/feed', authenticateJWT, feedRoutes);
 app.use('/stories', authenticateJWT, storyRoutes);
 app.use('/live', authenticateJWT, liveRoutes);
 app.use('/messaging', authenticateJWT, messagingRoutes);
+app.use('/calls', authenticateJWT, callRoutes);
 app.use('/channels', authenticateJWT, channelRoutes);
 app.use('/wallet', authenticateJWT, walletRoutes);
 app.use('/economy', authenticateJWT, economyRoutes);

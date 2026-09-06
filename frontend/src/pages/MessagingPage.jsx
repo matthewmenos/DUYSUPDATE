@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { FiSend, FiPaperclip, FiEdit2, FiTrash2, FiCheck, FiX, FiMessageCircle, FiArrowLeft } from 'react-icons/fi';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
+import GroupChatView from '../components/GroupChatView';
 
 /**
  * MessagingPage - split layout: conversation list (left) + chat view (right).
@@ -13,6 +14,7 @@ import useAuthStore from '../stores/authStore';
 function MessagingPage() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
+  const [view, setView] = useState('dms');
   const [activeConv, setActiveConv] = useState(null); // conversation object
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -194,7 +196,26 @@ const openConversation = async (conv) => {
 
   const isOwn = (msg) => Number(msg.sender_id) === Number(currentUserId);
 return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col">
+      {/* Mode tabs */}
+      <div className="flex border-b border-gray-800 px-2">
+        <button
+          onClick={() => setView('dms')}
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${view === 'dms' ? 'border-blue-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+        >
+          Messages
+        </button>
+        <button
+          onClick={() => setView('groups')}
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${view === 'groups' ? 'border-blue-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+        >
+          Groups
+        </button>
+      </div>
+      {view === 'groups' ? (
+        <div className="flex-1 min-h-0"><GroupChatView /></div>
+      ) : (
+      <div className="flex flex-1 min-h-0">
       {/* Conversations list */}
       <aside className={`w-full md:w-80 border-r border-gray-700 flex flex-col bg-black ${activeConv ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
@@ -366,6 +387,8 @@ return (
           </>
         )}
       </main>
+      </div>
+      )}
     </div>
   );
 }

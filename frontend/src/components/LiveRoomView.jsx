@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import Hls from 'hls.js';
 import toast from 'react-hot-toast';
-import { FiEye, FiSend, FiX } from 'react-icons/fi';
+import { FiEye, FiSend, FiX, FiHeart, FiMic, FiMicOff } from 'react-icons/fi';
 import api from '../api/client';
 import useAuthStore from '../stores/authStore';
 
@@ -19,6 +19,8 @@ function LiveRoomView({ room, onClose, onEnded }) {
   const [input, setInput] = useState('');
   const [chatOpen, setChatOpen] = useState(true);
   const [ended, setEnded] = useState(false);
+  const [hearts, setHearts] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
   const socketRef = useRef(null);
 
   const roomId = room?.id;
@@ -66,6 +68,12 @@ function LiveRoomView({ room, onClose, onEnded }) {
       setEnded(true);
       onEnded?.();
     });
+    socket.on('live:heart', ({ total }) => {
+      setHearts(total);
+    });
+    socket.on('live:speak-accepted', () => {
+      setSpeaking(true);
+    });
 
     return () => {
       socket.emit('live:leave', roomId);
@@ -94,6 +102,35 @@ function LiveRoomView({ room, onClose, onEnded }) {
       api.post(`/live/${roomId}/leave`).catch(() => {});
     };
   }, [roomId]);
+
+  // Load initial hearts count.
+  useEffect(() => {
+    if (!roomId) return;
+    api.get(`/live/${roomId}/hearts`).then((res) => setHearts(res.data.total || 0)).catch(() => {});
+  }, [roomId]);
+
+  const sendHeart = async () => {
+    if (!roomId) return;
+    try {
+      const res = await api.post(`/live/${roomId}/heart`);
+      setHearts(res.data.total ?? hearts + 1);
+    } catch { /* ignore */ }
+  };
+
+  const toggleSpeak = async () => {
+    if (!roomId) return;
+    try {
+      if (speaking) {
+        await api.post(`/live/${roomId}/speak`, { action: 'remove', targetUserId: Number(user?.id) });
+        setSpeaking(false);
+      } else {
+        await api.post(`/live/${roomId}/speak`, { action: 'request' });
+        toast.success('Speak request sent to the host');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed');
+    }
+  };
 
   // Auto-scroll chat to bottom on new messages.
   useEffect(() => {
@@ -143,6 +180,27 @@ function LiveRoomView({ room, onClose, onEnded }) {
             <span className="flex items-center gap-1 text-xs bg-red-600 rounded-full px-2 py-1">
               <FiEye /> {viewerCount}
             </span>
+<button
+              onClick={sendHeart}
+              className="flex items-center gap-1 text-xs bg-rose-600/80 hover:bg-rose-600 rounded-full px-2.5 py-1 transition"
+              title="Send hearts ❤️"
+            >
+              <FiHeart className="w-3.5 h-3.5" /> {hearts}
+            </button>
+            {!isHost && (
+              <button
+                onClick={toggleSpeak}
+                className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 transition ${
+                  speaking
+                    ? 'bg-green-600 hover:bg-green-500 text-white'
+                    : 'bg-white/10 hover:bg-white/20 text-gray-200'
+                }`}
+                title={speaking ? 'You are speaking — click to stop' : 'Request to speak'}
+              >
+                {speaking ? <FiMic className="w-3.5 h-3.5" /> : <FiMicOff className="w-3.5 h-3.5" />}
+                {speaking ? 'On air' : 'Speak'}
+              </button>
+            )}
             {isHost && (
               <button onClick={handleEnd} className="px-3 py-1 rounded-full bg-red-600 text-xs font-semibold hover:bg-red-500">
                 End stream

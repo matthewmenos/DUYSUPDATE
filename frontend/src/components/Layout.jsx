@@ -21,6 +21,7 @@ function Layout({ children }) {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const { data: unreadData } = useQuery({
     queryKey: ['notifications', 'unread'],
@@ -28,6 +29,16 @@ function Layout({ children }) {
     refetchInterval: 30000
   });
   const unreadCount = unreadData?.unread || 0;
+
+  const { data: notifPreview = [] } = useQuery({
+    queryKey: ['notifications', 'preview'],
+    queryFn: async () => {
+      const res = await api.get('/notifications', { params: { limit: 6 } });
+      return res.data.notifications || [];
+    },
+    refetchInterval: 30000,
+    enabled: unreadCount > 0
+  });
 
   React.useEffect(() => {
     let lastKey = null;
@@ -47,6 +58,7 @@ function Layout({ children }) {
   // Close the mobile drawer on every navigation.
   React.useEffect(() => {
     setDrawerOpen(false);
+    setNotifOpen(false);
   }, [location.pathname]);
 
   const navItems = [
@@ -127,14 +139,61 @@ function Layout({ children }) {
         <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="p-2 -ml-2 rounded-full hover:bg-gray-800"><FiMenu className="w-6 h-6" /></button>
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">DUYS</h1>
         <div className="flex items-center gap-1">
-          <Link to="/notifications" title="Notifications" className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
-            <FiBell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen((v) => !v)}
+              aria-label="Notifications"
+              className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition"
+            >
+              <FiBell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-11 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl overflow-hidden notif-pop">
+                  <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+                    <h3 className="font-bold text-sm">Notifications</h3>
+                    <Link to="/notifications" onClick={() => setNotifOpen(false)} className="text-xs text-blue-400 hover:underline">
+                      View all
+                    </Link>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {notifPreview.length === 0 ? (
+                      <p className="p-6 text-center text-sm text-gray-500">You're all caught up!</p>
+                    ) : (
+                      notifPreview.map((n) => (
+                        <Link
+                          key={n.id}
+                          to="/notifications"
+                          onClick={() => setNotifOpen(false)}
+                          className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-800 transition"
+                        >
+                          <img
+                            src={n.actor_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(n.actor_display_name || n.actor_username || 'U')}&background=6366f1&color=fff`}
+                            alt={n.actor_username}
+                            className="w-8 h-8 rounded-full object-cover bg-gray-800 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-200 truncate">
+                              <span className="font-semibold text-white">{n.actor_display_name || n.actor_username}</span>{' '}
+                              {n.title.replace(/^@\S+\s*/, '')}
+                            </p>
+                            <p className="text-xs text-gray-500">{n.message || n.kind}</p>
+                          </div>
+                          {!n.read_at && <span className="mt-2 w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
             )}
-          </Link>
+          </div>
           <button onClick={toggleTheme} aria-label="Toggle theme" className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition">
             {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
           </button>
