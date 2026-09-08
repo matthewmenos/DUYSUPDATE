@@ -5,8 +5,29 @@ dotenv.config();
 
 const { Pool } = pg;
 
+// ── Startup diagnostic ─────────────────────────────────────────────────────
+// Vercel serverless functions have NO local PostgreSQL, so a DATABASE_URL that
+// is missing or still points at localhost/127.0.0.1 will fail at request time
+// with ECONNREFUSED. Fail fast with a clear message instead. This is SSE-only;
+// it must never expose the connection string in an external-facing response.
+const dbUrl = process.env.DATABASE_URL || '';
+const isLocalPlaceholder =
+  /localhost|127\.0\.0\.1/.test(dbUrl) || dbUrl.includes('user:password@');
+if (!dbUrl) {
+  console.error(
+    '[database] DATABASE_URL is not set. Set it in Vercel → Settings → ' +
+    'Environment Variables (hosted Postgres, e.g. Neon/Supabase/Railway/RDS).'
+  );
+} else if (process.env.NODE_ENV === 'production' && isLocalPlaceholder) {
+  console.error(
+    '[database] DATABASE_URL still points at a LOCAL database ' +
+    `(${dbUrl.replace(/\/\/.*?@/, '//***@')}). Vercel has no local Postgres — ` +
+    'set DATABASE_URL to your hosted PostgreSQL connection string.'
+  );
+}
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl || undefined,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
