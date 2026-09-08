@@ -108,7 +108,7 @@ export async function followUser(followerId, followeeId) {
   if (followerId === followeeId) {
     throw new Error('Cannot follow yourself');
   }
-  
+
   try {
     await query(
       'INSERT INTO follows (follower_id, followee_id) VALUES ($1, $2)',
@@ -120,9 +120,12 @@ export async function followUser(followerId, followeeId) {
     }
     throw error;
   }
-  
-  // Increment subscriber count
-  await query('UPDATE users SET followers_count = followers_count + 1 WHERE id = $1', [followeeId]);
+  // NOTE: follower count is NOT denormalized onto `users` (the schema has no
+  // `followers_count` column). Counts are derived at read-time via COUNT(*)
+  // subqueries (see getUserById / searchUsers / getFollowSuggestions), so
+  // there is nothing to increment here. Adding an UPDATE on a non-existent
+  // column throws, which breaks follow/unfollow — keep this function to the
+  // single INSERT above.
 }
 
 /**
@@ -133,9 +136,8 @@ export async function unfollowUser(followerId, followeeId) {
     'DELETE FROM follows WHERE follower_id = $1 AND followee_id = $2',
     [followerId, followeeId]
   );
-  
-  // Decrement subscriber count
-  await query('UPDATE users SET followers_count = followers_count - 1 WHERE id = $1', [followeeId]);
+  // See note in followUser: follower counts are derived, not stored, so no
+  // decrement UPDATE is performed here.
 }
 
 /**

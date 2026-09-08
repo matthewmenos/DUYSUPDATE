@@ -127,20 +127,33 @@ npm install
 
 ### 5.2 Set up the database
 
+The **merged, idempotent schema** (`backend/src/config/schema-merged.sql`) is
+built from `schema.sql` + all migrations by `scripts/build-schema.mjs` and is
+applied **automatically** on server boot (see §5.2b). If you prefer to apply it
+manually for a fresh database:
+
 ```bash
 createdb duys_db
-psql duys_db < backend/src/config/schema.sql
-
-# Apply the incremental migration files in order:
-psql duys_db < backend/src/config/schema-migration-auth-2fa.sql
-psql duys_db < backend/src/config/schema-migration-posts-depth.sql
-psql duys_db < backend/src/config/schema-migration-social-depth.sql
-psql duys_db < backend/src/config/schema-migration-economy.sql
-psql duys_db < backend/src/config/schema-migration-admin-depth.sql
-psql duys_db < backend/src/config/schema-settings-migration.sql
+psql duys_db < backend/src/config/schema-merged.sql
 ```
 
-> Migrations use `CREATE TABLE IF NOT EXISTS`, so re-running them is safe.
+> `schema-merged.sql` is the single, complete, re-runnable schema. The individual
+> `schema.sql` / `schema-migration-*` files are kept for reference only.
+
+#### 5.2b Automatic migration on boot
+
+The backend runs the merged schema automatically at startup:
+
+- `backend/src/config/migrate.js` executes `schema-merged.sql` (idempotent)
+  inside a transaction and records the applied version in a `schema_migrations`
+  table.
+- `backend/src/app.js` calls `migrateOnBoot()` before `app.listen()` on the
+  long-running server.
+- Set `AUTO_MIGRATE=false` in the environment to skip startup migration.
+- To migrate manually / in a build step: `npm --workspace backend run migrate`
+  (or `cd backend && npm run migrate`).
+- To regenerate `schema-merged.sql` after editing a schema file:
+  `npm --workspace backend run build:schema`.
 
 ### 5.3 Configure environment
 
@@ -192,8 +205,15 @@ Health check: `GET http://localhost:5000/health` → `{ "status": "ok" }`.
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | for Google |
 | `HYPELAB_WEBHOOK_SECRET` | HMAC secret for the HypeLab ad webhook | for ad credits |
 | `HYPELAB_REWARD_POINTS` | Points rewarded per ad view (default `10`) | |
+| `FRONTEND_URL` | Frontend origin used for referral links (falls back to `APP_URL`) | |
+| `RTMP_URL` | RTMP ingest URL for live publishing (`rtmp://localhost:1935/live`) | for live |
+| `DUYS_CONTRACT_ADDRESS` | DUYS token contract address | for Web3 |
+| `USDT_CONTRACT_ADDRESS` | USDT contract address (BSC default used otherwise) | |
+| `VAULT_WALLET_ADDRESS` | Wallet that receives swap/deposit funds | for swaps |
 | `R2_*` / `S3_*` | Cloudflare R2 / AWS S3 bucket & credentials for media | for uploads |
+| `AUTO_MIGRATE` | If `false`, skip applying the schema on boot (default `true`) | |
 | `VERCEL` | Set by Vercel; makes `app.js` skip `app.listen()` (serverless) | auto |
+| `RUN_MIGRATIONS` | If `1`, force-run migrations when the module is imported (CI use) | |
 
 > ⚠️ A `backend/.env.example` is not included in the repo. Create `backend/.env`
 > from the table above, and keep the root shipped `.env.example` for reference.
@@ -205,6 +225,7 @@ Health check: `GET http://localhost:5000/health` → `{ "status": "ok" }`.
 | `VITE_API_URL` | API base URL. **Leave empty** in the single-project Vercel deploy so requests use the same origin (`/api`). In local dev it can be `http://localhost:5000`. |
 | `VITE_GOOGLE_CLIENT_ID` | Google Identity Services client ID |
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect/Reown project ID for Web3 wallet |
+| `VITE_HLS_BASE_URL` | Base URL for HLS live-stream playback (no trailing slash; empty = same-origin) |
 
 > Any variable prefixed with `VITE_` is baked into the frontend build, so never
 > put secrets there.

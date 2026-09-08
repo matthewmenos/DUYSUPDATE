@@ -6,6 +6,7 @@ import { FiHome, FiCompass, FiZap, FiVideo, FiMessageCircle, FiBell, FiUser, FiS
 import useAuthStore from '../stores/authStore';
 import useThemeStore from '../stores/themeStore';
 import api from '../api/client';
+import RightRail from './RightRail';
 import { onNotification } from '../utils/notificationSocket';
 
 /**
@@ -219,6 +220,8 @@ function Layout({ children }) {
       <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
         {children}
       </main>
+
+      <RightRail />
 
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50">

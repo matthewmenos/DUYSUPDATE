@@ -18,9 +18,12 @@ A modern social media platform similar to TikTok with Web3/crypto integration, b
 cd backend
 npm install
 createdb duys_db
-psql duys_db < src/config/schema.sql
+# Set DATABASE_URL in backend/.env (see .env.example). The schema is applied
+# automatically on boot from the merged schema-merged.sql; or run it manually:
+# psql duys_db < src/config/schema-merged.sql
 cp .env.example .env
 # Edit .env with your configuration
+npm run migrate   # optional: apply schema now instead of waiting for boot
 npm run dev
 ```
 

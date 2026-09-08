@@ -78,6 +78,13 @@ app.use(errorHandler);
 // Socket.io also only works with a long-running server, not serverless, so it
 // is loaded lazily here to keep the serverless bundle minimal.
 if (!process.env.VERCEL) {
+  // Ensure the database schema is up to date before accepting traffic.
+  // Individual migration files are merged into an idempotent schema by
+  // scripts/build-schema.mjs and applied here on every boot (unless
+  // AUTO_MIGRATE=false). Skipped automatically on Vercel serverless.
+  const { migrateOnBoot } = await import('./config/migrate.js');
+  await migrateOnBoot();
+
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
     console.log(`[${new Date().toISOString()}] DUYS backend running on port ${PORT}`);
