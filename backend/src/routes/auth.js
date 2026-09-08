@@ -145,6 +145,11 @@ router.post('/google', async (req, res) => {
     const { user, accessToken, refreshToken } = result;
     res.json({ user, accessToken, refreshToken });
   } catch (err) {
+    // A DB/transport failure would otherwise be masked as a 400 - surface it
+    // clearly so it isn't confused with an actual credential problem.
+    if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET' || /connection|pool|ECONNREFUSED|could not connect/i.test(err.message || '')) {
+      return res.status(503).json({ error: 'Service temporarily unavailable. Please try again in a moment.' });
+    }
     res.status(400).json({ error: err.message });
   }
 });
